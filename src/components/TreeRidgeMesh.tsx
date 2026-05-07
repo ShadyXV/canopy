@@ -7,13 +7,7 @@ import { generateFallbackTexture } from '../lib/treeUtils'
 
 extend({ TreeRidgeMaterial })
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      treeRidgeMaterial: any
-    }
-  }
-}
+
 
 interface Props {
   textureIndex: number

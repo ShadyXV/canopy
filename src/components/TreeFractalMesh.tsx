@@ -7,13 +7,7 @@ import { generateFallbackTexture } from '../lib/treeUtils'
 
 extend({ TreeFractalMaterial })
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      treeFractalMaterial: any
-    }
-  }
-}
+
 
 interface Props {
   textureIndex: number

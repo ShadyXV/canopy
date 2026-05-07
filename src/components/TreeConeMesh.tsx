@@ -7,13 +7,7 @@ import { generateFallbackTexture } from '../lib/treeUtils'
 
 extend({ TreeConeMaterial })
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      treeConeMaterial: any
-    }
-  }
-}
+
 
 interface Props {
   textureIndex: number

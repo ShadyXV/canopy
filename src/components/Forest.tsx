@@ -9,6 +9,7 @@ interface Props {
   windDirectionAngle: number
   depthFactor: number
   areaSize?: number
+  visible?: boolean
 }
 
 // Terrain generic ground
@@ -22,7 +23,7 @@ function Ground({ areaSize }: { areaSize: number }) {
   )
 }
 
-export function Forest({ forestDensity, windIntensity, windDirectionAngle, depthFactor, areaSize = 80 }: Props) {
+export function Forest({ forestDensity, windIntensity, windDirectionAngle, depthFactor, areaSize = 80, visible = true }: Props) {
   // Convert angle (degrees) to direction vector
   const windDirection = useMemo<[number, number]>(() => {
     const rad = (windDirectionAngle * Math.PI) / 180
@@ -32,7 +33,7 @@ export function Forest({ forestDensity, windIntensity, windDirectionAngle, depth
   // Split your available tree textures (12 to 16) into groups for different mesh topologies
   // We can just explicitly assign some to each type
   return (
-    <group>
+    <group visible={visible}>
       <Ground areaSize={areaSize} />
       
       {/* Lights tailored for the 2.5D top-down scene */}
