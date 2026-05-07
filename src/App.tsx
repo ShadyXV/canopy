@@ -25,7 +25,7 @@ export default function App() {
     depthFactor,
     forestDensity,
     pendingAsset,
-    setPendingAsset,
+    cancelPlacement,
     selectedId,
   } = useEditorStore()
 
@@ -37,11 +37,11 @@ export default function App() {
   // Escape key cancels pending placement
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && pendingAsset) setPendingAsset(null)
+      if (e.key === 'Escape' && pendingAsset) cancelPlacement()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pendingAsset, setPendingAsset])
+  }, [pendingAsset, cancelPlacement])
 
   const isStudio = mode === 'studio'
   const cursorClass = pendingAsset ? 'cursor-crosshair' : 'cursor-default'

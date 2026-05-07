@@ -5,14 +5,13 @@ import { TREE_ASSETS, type TreeAsset } from '../../lib/treeAssetCatalog'
 import { DEFAULT_SHADER_TWEAKS, SHADER_VARIANTS, type ShaderType } from '../../lib/shaderVariants'
 
 function AssetCard({ asset }: { asset: TreeAsset }) {
-  const { pendingAsset, setPendingAsset } = useEditorStore()
+  const { pendingAsset, startPlacement, togglePlacement } = useEditorStore()
   const [shader, setShader] = useState<ShaderType>(asset.defaultShader)
 
   const isPending = pendingAsset?.textureIndex === asset.id && pendingAsset?.shader === shader
 
   const handlePlace = () => {
-    if (isPending) { setPendingAsset(null); return }
-    setPendingAsset({ textureIndex: asset.id, shader })
+    togglePlacement({ textureIndex: asset.id, shader })
   }
 
   return (
@@ -58,7 +57,7 @@ function AssetCard({ asset }: { asset: TreeAsset }) {
             onChange={(e) => {
               const s = e.target.value as ShaderType
               setShader(s)
-              if (isPending) setPendingAsset({ textureIndex: asset.id, shader: s })
+              if (isPending) startPlacement({ textureIndex: asset.id, shader: s })
             }}
             className="flex-1 text-[10px] bg-neutral-900 border border-neutral-700 text-neutral-300 rounded-md px-1.5 py-1.5 outline-none focus:border-emerald-500"
           >

@@ -28,24 +28,21 @@ function Row({
   )
 }
 
-function setTweak(
-  id: string,
-  tweaks: ShaderTweaks,
-  key: keyof ShaderTweaks,
-  val: number,
-  updateAsset: (id: string, u: any) => void
-) {
-  updateAsset(id, { shaderTweaks: { ...tweaks, [key]: val } })
-}
-
 export function InspectorPanel() {
-  const { placedAssets, selectedId, selectAsset, updateAsset, removeAsset } = useEditorStore()
+  const {
+    placedAssets,
+    selectedId,
+    deselectAsset,
+    updateSelectedAsset,
+    updateSelectedShaderTweak,
+    removeSelectedAsset,
+  } = useEditorStore()
   const asset = placedAssets.find((a) => a.id === selectedId)
   if (!asset) return null
   const treeAsset = getTreeAsset(asset.textureIndex)
 
   const tw = asset.shaderTweaks
-  const upd = (key: keyof ShaderTweaks, val: number) => setTweak(asset.id, tw, key, val, updateAsset)
+  const upd = (key: keyof ShaderTweaks, val: number) => updateSelectedShaderTweak(key, val)
 
   return (
     <div className="w-64 bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/60 rounded-2xl shadow-2xl overflow-hidden">
@@ -57,14 +54,14 @@ export function InspectorPanel() {
         </div>
         <div className="flex gap-1">
           <button
-            onClick={() => removeAsset(asset.id)}
+            onClick={removeSelectedAsset}
             title="Delete asset"
             className="p-1 rounded text-neutral-500 hover:text-red-400 hover:bg-red-950/40 transition-colors"
           >
             <Trash2 size={13} />
           </button>
           <button
-            onClick={() => selectAsset(null)}
+            onClick={deselectAsset}
             className="p-1 rounded text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800 transition-colors"
           >
             <X size={13} />
@@ -80,7 +77,7 @@ export function InspectorPanel() {
             {SHADER_VARIANTS.map((variant) => (
               <button
                 key={variant.id}
-                onClick={() => updateAsset(asset.id, { shader: variant.id })}
+                onClick={() => updateSelectedAsset({ shader: variant.id })}
                 className={`flex-1 text-[10px] font-semibold py-1.5 rounded-lg border transition-all ${
                   asset.shader === variant.id
                     ? variant.inspectorActiveClass
@@ -142,7 +139,7 @@ export function InspectorPanel() {
             value={asset.scale}
             min={1} max={30} step={0.5}
             format={(v) => v.toFixed(1)}
-            onChange={(v) => updateAsset(asset.id, { scale: v })}
+            onChange={(v) => updateSelectedAsset({ scale: v })}
           />
 
           <Row
@@ -150,7 +147,7 @@ export function InspectorPanel() {
             value={asset.rotation}
             min={0} max={Math.PI * 2} step={0.05}
             format={(v) => `${Math.round((v * 180) / Math.PI)}°`}
-            onChange={(v) => updateAsset(asset.id, { rotation: v })}
+            onChange={(v) => updateSelectedAsset({ rotation: v })}
           />
 
           {/* XY position */}
@@ -168,7 +165,7 @@ export function InspectorPanel() {
                       const val = parseFloat(e.target.value)
                       const p: [number, number] = [...asset.position] as [number, number]
                       p[i] = isNaN(val) ? p[i] : val
-                      updateAsset(asset.id, { position: p })
+                      updateSelectedAsset({ position: p })
                     }}
                     className="w-full bg-transparent text-[10px] text-neutral-300 font-mono outline-none"
                   />

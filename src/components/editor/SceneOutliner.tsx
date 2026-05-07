@@ -5,7 +5,7 @@ import { getTreeAsset } from '../../lib/treeAssetCatalog'
 import { getShaderVariant } from '../../lib/shaderVariants'
 
 export function SceneOutliner() {
-  const { placedAssets, selectedId, selectAsset, removeAsset } = useEditorStore()
+  const { placedAssets, selectedId, toggleAssetSelection, removeAsset } = useEditorStore()
 
   return (
     <div className="flex flex-col h-full">
@@ -28,7 +28,7 @@ export function SceneOutliner() {
               return (
                 <li
                   key={asset.id}
-                  onClick={() => selectAsset(asset.id === selectedId ? null : asset.id)}
+                  onClick={() => toggleAssetSelection(asset.id)}
                   className={`group flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${
                     asset.id === selectedId
                       ? 'bg-emerald-900/30 border border-emerald-700/50'

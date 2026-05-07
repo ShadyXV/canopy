@@ -18,12 +18,15 @@ export interface PlacedAsset {
   shaderTweaks: ShaderTweaks
 }
 
+type PendingAsset = Pick<PlacedAsset, 'textureIndex' | 'shader'>
+type AssetUpdates = Partial<Pick<PlacedAsset, 'shader' | 'rotation' | 'scale' | 'position' | 'shaderTweaks'>>
+
 interface EditorState {
   mode: 'forest' | 'studio'
   showBackgroundForest: boolean
   placedAssets: PlacedAsset[]
   selectedId: string | null
-  pendingAsset: { textureIndex: number; shader: ShaderType } | null
+  pendingAsset: PendingAsset | null
 
   // Scene-wide controls
   windIntensity: number
@@ -34,11 +37,18 @@ interface EditorState {
   // Actions
   setMode: (mode: 'forest' | 'studio') => void
   setShowBackgroundForest: (v: boolean) => void
-  setPendingAsset: (asset: { textureIndex: number; shader: ShaderType } | null) => void
-  placeAsset: (textureIndex: number, shader: ShaderType, position: [number, number]) => void
+  startPlacement: (asset: PendingAsset) => void
+  cancelPlacement: () => void
+  togglePlacement: (asset: PendingAsset) => void
+  placePendingAsset: (position: [number, number]) => void
   selectAsset: (id: string | null) => void
-  updateAsset: (id: string, updates: Partial<Pick<PlacedAsset, 'shader' | 'rotation' | 'scale' | 'position' | 'shaderTweaks'>>) => void
+  toggleAssetSelection: (id: string) => void
+  deselectAsset: () => void
+  updateAsset: (id: string, updates: AssetUpdates) => void
+  updateSelectedAsset: (updates: AssetUpdates) => void
+  updateSelectedShaderTweak: (key: keyof ShaderTweaks, value: number) => void
   removeAsset: (id: string) => void
+  removeSelectedAsset: () => void
   setWindIntensity: (v: number) => void
   setWindDirection: (v: number) => void
   setDepthFactor: (v: number) => void
@@ -61,30 +71,79 @@ export const useEditorStore = create<EditorState>((set) => ({
 
   setMode: (mode) => set({ mode }),
   setShowBackgroundForest: (v) => set({ showBackgroundForest: v }),
-  setPendingAsset: (asset) => set({ pendingAsset: asset }),
 
-  placeAsset: (textureIndex, shader, position) =>
+  startPlacement: (asset) => set({ pendingAsset: asset }),
+  cancelPlacement: () => set({ pendingAsset: null }),
+  togglePlacement: (asset) =>
+    set((state) => ({
+      pendingAsset:
+        state.pendingAsset?.textureIndex === asset.textureIndex && state.pendingAsset.shader === asset.shader
+          ? null
+          : asset,
+    })),
+
+  placePendingAsset: (position) =>
     set((state) => {
+      if (!state.pendingAsset) return state
       const id = genId()
       return {
-        placedAssets: [...state.placedAssets, { id, textureIndex, shader, position, rotation: 0, scale: 8, shaderTweaks: { ...DEFAULT_SHADER_TWEAKS } }],
+        placedAssets: [
+          ...state.placedAssets,
+          {
+            id,
+            textureIndex: state.pendingAsset.textureIndex,
+            shader: state.pendingAsset.shader,
+            position,
+            rotation: 0,
+            scale: 8,
+            shaderTweaks: { ...DEFAULT_SHADER_TWEAKS },
+          },
+        ],
         pendingAsset: null,
         selectedId: id,
       }
     }),
 
   selectAsset: (id) => set({ selectedId: id }),
+  toggleAssetSelection: (id) => set((state) => ({ selectedId: state.selectedId === id ? null : id })),
+  deselectAsset: () => set({ selectedId: null }),
 
   updateAsset: (id, updates) =>
     set((state) => ({
       placedAssets: state.placedAssets.map((a) => (a.id === id ? { ...a, ...updates } : a)),
     })),
+  updateSelectedAsset: (updates) =>
+    set((state) => {
+      if (!state.selectedId) return state
+      return {
+        placedAssets: state.placedAssets.map((a) => (a.id === state.selectedId ? { ...a, ...updates } : a)),
+      }
+    }),
+  updateSelectedShaderTweak: (key, value) =>
+    set((state) => {
+      if (!state.selectedId) return state
+      return {
+        placedAssets: state.placedAssets.map((asset) =>
+          asset.id === state.selectedId
+            ? { ...asset, shaderTweaks: { ...asset.shaderTweaks, [key]: value } }
+            : asset
+        ),
+      }
+    }),
 
   removeAsset: (id) =>
     set((state) => ({
       placedAssets: state.placedAssets.filter((a) => a.id !== id),
       selectedId: state.selectedId === id ? null : state.selectedId,
     })),
+  removeSelectedAsset: () =>
+    set((state) => {
+      if (!state.selectedId) return state
+      return {
+        placedAssets: state.placedAssets.filter((a) => a.id !== state.selectedId),
+        selectedId: null,
+      }
+    }),
 
   setWindIntensity: (v) => set({ windIntensity: v }),
   setWindDirection: (v) => set({ windDirection: v }),

@@ -1,5 +1,4 @@
 import React from 'react'
-import { useThree } from '@react-three/fiber'
 import { SingleTreeMesh } from './SingleTreeMesh'
 import { useEditorStore } from '../store/editorStore'
 
@@ -10,16 +9,15 @@ interface Props {
 }
 
 export function SceneEditor({ windIntensity, windDirection, depthFactor }: Props) {
-  const { placedAssets, pendingAsset, selectedId, placeAsset, selectAsset } = useEditorStore()
+  const { placedAssets, pendingAsset, selectedId, placePendingAsset, deselectAsset, selectAsset } = useEditorStore()
 
   const handlePlaneClick = (e: any) => {
     if (!pendingAsset) {
-      // Deselect if clicking empty space
-      selectAsset(null)
+      deselectAsset()
       return
     }
     e.stopPropagation()
-    placeAsset(pendingAsset.textureIndex, pendingAsset.shader, [e.point.x, e.point.y])
+    placePendingAsset([e.point.x, e.point.y])
   }
 
   return (
