@@ -90,6 +90,7 @@ export const TreeFractalMaterial = shaderMaterial(
     varying vec3 vWorldPos;
 
     uniform sampler2D uTexture;
+    uniform float uAmplitude;
 
     void main() {
       vec4 texColor = texture2D(uTexture, vUv);
@@ -107,16 +108,23 @@ export const TreeFractalMaterial = shaderMaterial(
       float dy = dFdy(brightness);
       vec3 bumpNormal = normalize(vec3(-dx * 5.0, -dy * 5.0, 1.0));
 
-      vec3 finalNormal = normalize(vNormal + bumpNormal * 0.3);
+      // Amplitude-driven shading: geometry normals dominate at high amplitude,
+      // texture bump fills in at low amplitude. Ambient drops for shadow contrast.
+      float bumpWeight = mix(0.6, 0.05, clamp(uAmplitude / 1.5, 0.0, 1.0));
+      vec3 finalNormal = normalize(vNormal + bumpNormal * bumpWeight);
 
-      vec3 lightDir = normalize(vec3(0.5, -0.2, 1.0)); 
+      vec3 lightDir  = normalize(vec3(0.5, -0.2, 1.0));
       vec3 fillLight = normalize(vec3(-0.5, 0.2, 0.5));
 
-      float diff = max(dot(finalNormal, lightDir), 0.0);
+      float diff     = max(dot(finalNormal, lightDir),  0.0);
       float fillDiff = max(dot(finalNormal, fillLight), 0.0);
 
-      vec3 ambient = vec3(0.2, 0.25, 0.3); 
-      vec3 calculatedLight = ambient + (vec3(1.0, 0.95, 0.9) * diff * 1.5) + (vec3(0.3, 0.4, 0.5) * fillDiff * 0.8);
+      float amb = mix(0.28, 0.08, clamp(uAmplitude / 1.5, 0.0, 1.0));
+      vec3 ambient = vec3(amb, amb + 0.03, amb + 0.06);
+      float sunStr = mix(1.2, 2.2, clamp(uAmplitude / 1.5, 0.0, 1.0));
+      vec3 calculatedLight = ambient
+        + vec3(1.0, 0.95, 0.9) * diff * sunStr
+        + vec3(0.3, 0.4, 0.5) * fillDiff * 0.7;
 
       vec3 finalColor = texColor.rgb * calculatedLight;
 
