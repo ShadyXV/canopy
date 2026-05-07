@@ -1,6 +1,7 @@
 import React from 'react'
 import { Trash2, X } from 'lucide-react'
 import { useEditorStore, ShaderType, ShaderTweaks } from '../../store/editorStore'
+import { ShaderPreviewCanvas } from './ShaderPreviewCanvas'
 
 const SHADERS: { id: ShaderType; label: string; active: string }[] = [
   { id: 'cone',    label: 'Cone',    active: 'bg-sky-700    border-sky-500    text-white' },
@@ -93,6 +94,18 @@ export function InspectorPanel() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* ── Live 3D Preview ──────────────────────────── */}
+        <div className="rounded-xl overflow-hidden border border-neutral-700/40">
+          <ShaderPreviewCanvas
+            shader={asset.shader}
+            tweaks={asset.shaderTweaks}
+            height={120}
+          />
+          <p className="text-[9px] text-neutral-600 text-center py-1 bg-neutral-950/60">
+            Drag to rotate · updates live
+          </p>
         </div>
 
         {/* ── Shader Tweaks ─────────────────────────────── */}
