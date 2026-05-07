@@ -1,14 +1,13 @@
 import React from 'react'
 import { SingleTreeMesh } from './SingleTreeMesh'
 import { useEditorStore } from '../store/editorStore'
+import type { ShaderEnvironment } from '../lib/sceneEnvironment'
 
 interface Props {
-  windIntensity: number
-  windDirection: [number, number]
-  depthFactor: number
+  environment: ShaderEnvironment
 }
 
-export function SceneEditor({ windIntensity, windDirection, depthFactor }: Props) {
+export function SceneEditor({ environment }: Props) {
   const { placedAssets, pendingAsset, selectedId, placePendingAsset, deselectAsset, selectAsset } = useEditorStore()
 
   const handlePlaneClick = (e: any) => {
@@ -40,9 +39,9 @@ export function SceneEditor({ windIntensity, windDirection, depthFactor }: Props
           scale={asset.scale}
           shaderTweaks={asset.shaderTweaks}
           isSelected={asset.id === selectedId}
-          windIntensity={windIntensity}
-          windDirection={windDirection}
-          depthFactor={depthFactor}
+          windIntensity={environment.windIntensity}
+          windDirection={environment.windDirection}
+          depthFactor={environment.depthFactor}
           onClick={selectAsset}
         />
       ))}

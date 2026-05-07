@@ -1,12 +1,10 @@
 import React, { useMemo } from 'react'
 import { TreeInstanceMesh, createSeededTreeInstances } from './TreeInstanceMesh'
 import { TREE_ASSETS, type TreeAsset } from '../lib/treeAssetCatalog'
+import { toShaderEnvironment, type SceneEnvironment, type ShaderEnvironment } from '../lib/sceneEnvironment'
 
 interface Props {
-  forestDensity: number
-  windIntensity: number
-  windDirectionAngle: number
-  depthFactor: number
+  environment: SceneEnvironment
   areaSize?: number
   visible?: boolean
 }
@@ -24,28 +22,24 @@ function Ground({ areaSize }: { areaSize: number }) {
 
 function ForestAsset({
   asset,
-  forestDensity,
-  windIntensity,
-  windDirection,
-  depthFactor,
+  environment,
+  shaderEnvironment,
   areaSize,
 }: {
   asset: TreeAsset
-  forestDensity: number
-  windIntensity: number
-  windDirection: [number, number]
-  depthFactor: number
+  environment: SceneEnvironment
+  shaderEnvironment: ShaderEnvironment
   areaSize: number
 }) {
   const instances = useMemo(
     () => createSeededTreeInstances({
       textureIndex: asset.id,
-      count: forestDensity,
+      count: environment.forestDensity,
       areaSize,
       positionOffset: asset.forestPositionOffset,
       seedOffset: asset.forestSeedOffset,
     }),
-    [asset, forestDensity, areaSize]
+    [asset, environment.forestDensity, areaSize]
   )
 
   return (
@@ -53,19 +47,15 @@ function ForestAsset({
       textureIndex={asset.id}
       shader={asset.forestShader}
       instances={instances}
-      windIntensity={windIntensity}
-      windDirection={windDirection}
-      depthFactor={depthFactor}
+      windIntensity={shaderEnvironment.windIntensity}
+      windDirection={shaderEnvironment.windDirection}
+      depthFactor={shaderEnvironment.depthFactor}
     />
   )
 }
 
-export function Forest({ forestDensity, windIntensity, windDirectionAngle, depthFactor, areaSize = 80, visible = true }: Props) {
-  // Convert angle (degrees) to direction vector
-  const windDirection = useMemo<[number, number]>(() => {
-    const rad = (windDirectionAngle * Math.PI) / 180
-    return [Math.cos(rad), Math.sin(rad)]
-  }, [windDirectionAngle])
+export function Forest({ environment, areaSize = 80, visible = true }: Props) {
+  const shaderEnvironment = useMemo(() => toShaderEnvironment(environment), [environment])
 
   return (
     <group visible={visible}>
@@ -80,10 +70,8 @@ export function Forest({ forestDensity, windIntensity, windDirectionAngle, depth
         <ForestAsset
           key={asset.id}
           asset={asset}
-          forestDensity={forestDensity}
-          windIntensity={windIntensity}
-          windDirection={windDirection}
-          depthFactor={depthFactor}
+          environment={environment}
+          shaderEnvironment={shaderEnvironment}
           areaSize={areaSize}
         />
       ))}

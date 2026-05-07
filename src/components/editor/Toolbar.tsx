@@ -1,21 +1,24 @@
 import React from 'react'
 import { Layers, Eye, EyeOff } from 'lucide-react'
 import { useEditorStore } from '../../store/editorStore'
+import { SCENE_ENVIRONMENT_CONTROLS, type EnvironmentControl } from '../../lib/sceneEnvironment'
 
 function Slider({
-  label, value, min, max, step, unit = '', onChange,
+  control, value, onChange,
 }: {
-  label: string; value: number; min: number; max: number; step: number; unit?: string; onChange: (v: number) => void
+  control: EnvironmentControl
+  value: number
+  onChange: (v: number) => void
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[10px] text-neutral-500 w-20 shrink-0">{label}</span>
+      <span className="text-[10px] text-neutral-500 w-20 shrink-0">{control.label}</span>
       <input
-        type="range" min={min} max={max} step={step} value={value}
+        type="range" min={control.min} max={control.max} step={control.step} value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
         className="flex-1 accent-emerald-500 h-1 rounded-full"
       />
-      <span className="text-[10px] font-mono text-neutral-400 w-10 text-right">{value.toFixed(1)}{unit}</span>
+      <span className="text-[10px] font-mono text-neutral-400 w-10 text-right">{control.format(value)}</span>
     </div>
   )
 }
@@ -30,6 +33,13 @@ export function Toolbar() {
     forestDensity, setForestDensity,
     placedAssets, pendingAsset,
   } = useEditorStore()
+  const environment = { windIntensity, windDirection, depthFactor, forestDensity }
+  const setEnvironmentValue = {
+    windIntensity: setWindIntensity,
+    windDirection: setWindDirection,
+    depthFactor: setDepthFactor,
+    forestDensity: setForestDensity,
+  }
 
   return (
     <div className="absolute top-0 left-0 right-0 z-40 flex items-center gap-4 px-4 py-2 bg-neutral-950/90 backdrop-blur-xl border-b border-neutral-800/80">
@@ -76,12 +86,14 @@ export function Toolbar() {
 
       {/* Scene controls */}
       <div className="flex-1 flex items-center gap-4 min-w-0">
-        <Slider label="Wind" value={windIntensity} min={0} max={2} step={0.01} onChange={setWindIntensity} />
-        <Slider label="Direction" value={windDirection} min={0} max={360} step={1} unit="°" onChange={setWindDirection} />
-        <Slider label="Depth" value={depthFactor} min={0} max={10} step={0.1} onChange={setDepthFactor} />
-        {mode === 'forest' && (
-          <Slider label="Density" value={forestDensity} min={1} max={50} step={1} onChange={setForestDensity} />
-        )}
+        {SCENE_ENVIRONMENT_CONTROLS.filter((control) => !control.visibleInMode || control.visibleInMode === mode).map((control) => (
+          <Slider
+            key={control.key}
+            control={control}
+            value={environment[control.key]}
+            onChange={setEnvironmentValue[control.key]}
+          />
+        ))}
       </div>
 
       {/* Status badge */}

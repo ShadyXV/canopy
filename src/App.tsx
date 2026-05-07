@@ -10,6 +10,7 @@ import { Toolbar } from './components/editor/Toolbar'
 import { AssetBrowser } from './components/editor/AssetBrowser'
 import { SceneOutliner } from './components/editor/SceneOutliner'
 import { InspectorPanel } from './components/editor/InspectorPanel'
+import { countForestInstances, toShaderEnvironment } from './lib/sceneEnvironment'
 
 // Kick off texture preloading immediately
 preloadAllTextures()
@@ -29,10 +30,11 @@ export default function App() {
     selectedId,
   } = useEditorStore()
 
-  const windDirectionVec = useMemo<[number, number]>(() => {
-    const rad = (windDirection * Math.PI) / 180
-    return [Math.cos(rad), Math.sin(rad)]
-  }, [windDirection])
+  const environment = useMemo(
+    () => ({ windIntensity, windDirection, depthFactor, forestDensity }),
+    [windIntensity, windDirection, depthFactor, forestDensity]
+  )
+  const shaderEnvironment = useMemo(() => toShaderEnvironment(environment), [environment])
 
   // Escape key cancels pending placement
   useEffect(() => {
@@ -68,19 +70,14 @@ export default function App() {
 
           {/* Background forest (always rendered in forest mode, toggleable in studio) */}
           <Forest
-            forestDensity={forestDensity}
-            windIntensity={windIntensity}
-            windDirectionAngle={windDirection}
-            depthFactor={depthFactor}
+            environment={environment}
             visible={mode === 'forest' || showBackgroundForest}
           />
 
           {/* Studio editor: placed assets + click plane */}
           {isStudio && (
             <SceneEditor
-              windIntensity={windIntensity}
-              windDirection={windDirectionVec}
-              depthFactor={depthFactor}
+              environment={shaderEnvironment}
             />
           )}
 
@@ -153,7 +150,7 @@ export default function App() {
         <p className="text-xs font-mono text-neutral-500 mt-0.5">
           {isStudio
             ? `${useEditorStore.getState().placedAssets.length} instances · 2.5D GLSL`
-            : `${5 * forestDensity} instances · 2.5D Volumetric Mesh`}
+            : `${countForestInstances(environment)} instances · 2.5D Volumetric Mesh`}
         </p>
       </div>
     </div>

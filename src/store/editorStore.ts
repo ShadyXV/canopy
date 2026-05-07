@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { DEFAULT_SHADER_TWEAKS, type ShaderType } from '../lib/shaderVariants'
+import { DEFAULT_SCENE_ENVIRONMENT, type SceneEnvironment } from '../lib/sceneEnvironment'
 export type { ShaderType } from '../lib/shaderVariants'
 
 export interface ShaderTweaks {
@@ -21,18 +22,12 @@ export interface PlacedAsset {
 type PendingAsset = Pick<PlacedAsset, 'textureIndex' | 'shader'>
 type AssetUpdates = Partial<Pick<PlacedAsset, 'shader' | 'rotation' | 'scale' | 'position' | 'shaderTweaks'>>
 
-interface EditorState {
+interface EditorState extends SceneEnvironment {
   mode: 'forest' | 'studio'
   showBackgroundForest: boolean
   placedAssets: PlacedAsset[]
   selectedId: string | null
   pendingAsset: PendingAsset | null
-
-  // Scene-wide controls
-  windIntensity: number
-  windDirection: number
-  depthFactor: number
-  forestDensity: number
 
   // Actions
   setMode: (mode: 'forest' | 'studio') => void
@@ -64,10 +59,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   placedAssets: [],
   selectedId: null,
   pendingAsset: null,
-  windIntensity: 0.5,
-  windDirection: 45,
-  depthFactor: 2.5,
-  forestDensity: 10,
+  ...DEFAULT_SCENE_ENVIRONMENT,
 
   setMode: (mode) => set({ mode }),
   setShowBackgroundForest: (v) => set({ showBackgroundForest: v }),
