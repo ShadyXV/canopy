@@ -7,6 +7,9 @@ export const TreeFractalMaterial = shaderMaterial(
     uWindIntensity: 0.5,
     uWindDirection: new THREE.Vector2(1.0, 0.5),
     uDepthFactor: 1.0,
+    uAmplitude: 0.6,
+    uFrequency: 1.0,
+    uHeightScale: 0.5,
     uTexture: new THREE.Texture(),
   },
   `
@@ -18,6 +21,9 @@ export const TreeFractalMaterial = shaderMaterial(
     uniform float uWindIntensity;
     uniform vec2 uWindDirection;
     uniform float uDepthFactor;
+    uniform float uAmplitude;
+    uniform float uFrequency;
+    uniform float uHeightScale;
 
     float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123); }
     float noise(vec2 st) {
@@ -41,14 +47,14 @@ export const TreeFractalMaterial = shaderMaterial(
       vec4 instanceWorldPos = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
 
       // Higher frequency, more rugged terrain
-      float n = fbm(uv * 6.0 + instanceWorldPos.xy * 0.2);
+      float n = fbm(uv * 6.0 * uFrequency + instanceWorldPos.xy * 0.2);
       // Macro structure
-      float macro = fbm(uv * 1.5 - instanceWorldPos.xy * 0.1);
-      float height = (n * 0.4 + macro * 0.6) * edgeFade;
+      float macro = fbm(uv * 1.5 * uFrequency - instanceWorldPos.xy * 0.1);
+      float height = (n * 0.4 + macro * 0.6) * edgeFade * uAmplitude;
 
       vec3 pos = position;
       // Make it more volumetric
-      pos.z += height * uDepthFactor * 2.0;
+      pos.z += height * uDepthFactor * 2.0 * uHeightScale;
 
       float temporalPhase = uTime * 3.0;
       float spatialPhase = instanceWorldPos.x * 0.1 + instanceWorldPos.y * 0.1;
@@ -62,10 +68,10 @@ export const TreeFractalMaterial = shaderMaterial(
 
       // Estimate normal from the rugged fractal terrain, no cone normal!
       float eps = 0.02;
-      float nL_n = fbm(vec2(uv.x - eps, uv.y) * 6.0 + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x - eps, uv.y) * 1.5 - instanceWorldPos.xy * 0.1) * 0.6;
-      float nR_n = fbm(vec2(uv.x + eps, uv.y) * 6.0 + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x + eps, uv.y) * 1.5 - instanceWorldPos.xy * 0.1) * 0.6;
-      float nD_n = fbm(vec2(uv.x, uv.y - eps) * 6.0 + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x, uv.y - eps) * 1.5 - instanceWorldPos.xy * 0.1) * 0.6;
-      float nU_n = fbm(vec2(uv.x, uv.y + eps) * 6.0 + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x, uv.y + eps) * 1.5 - instanceWorldPos.xy * 0.1) * 0.6;
+      float nL_n = (fbm(vec2(uv.x - eps, uv.y) * 6.0 * uFrequency + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x - eps, uv.y) * 1.5 * uFrequency - instanceWorldPos.xy * 0.1) * 0.6) * uAmplitude;
+      float nR_n = (fbm(vec2(uv.x + eps, uv.y) * 6.0 * uFrequency + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x + eps, uv.y) * 1.5 * uFrequency - instanceWorldPos.xy * 0.1) * 0.6) * uAmplitude;
+      float nD_n = (fbm(vec2(uv.x, uv.y - eps) * 6.0 * uFrequency + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x, uv.y - eps) * 1.5 * uFrequency - instanceWorldPos.xy * 0.1) * 0.6) * uAmplitude;
+      float nU_n = (fbm(vec2(uv.x, uv.y + eps) * 6.0 * uFrequency + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x, uv.y + eps) * 1.5 * uFrequency - instanceWorldPos.xy * 0.1) * 0.6) * uAmplitude;
 
       float nx = (nL_n - nR_n) * uDepthFactor * 25.0;
       float ny = (nD_n - nU_n) * uDepthFactor * 25.0;

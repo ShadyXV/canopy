@@ -7,6 +7,7 @@ export const TreeConeMaterial = shaderMaterial(
     uWindIntensity: 0.5,
     uWindDirection: new THREE.Vector2(1.0, 0.5),
     uDepthFactor: 1.0,
+    uHeightScale: 0.5,
     uTexture: new THREE.Texture(),
   },
   `
@@ -18,6 +19,7 @@ export const TreeConeMaterial = shaderMaterial(
     uniform float uWindIntensity;
     uniform vec2 uWindDirection;
     uniform float uDepthFactor;
+    uniform float uHeightScale;
 
     void main() {
       vUv = uv;
@@ -26,7 +28,7 @@ export const TreeConeMaterial = shaderMaterial(
       float height = smoothstep(0.5, 0.0, dist);
 
       vec3 pos = position;
-      pos.z += height * uDepthFactor;
+      pos.z += height * uDepthFactor * uHeightScale;
 
       vec4 instanceWorldPos = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
 

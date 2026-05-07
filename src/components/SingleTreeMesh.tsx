@@ -5,7 +5,7 @@ import { TreeConeMaterial } from '../shaders/TreeConeMaterial'
 import { TreeRidgeMaterial } from '../shaders/TreeRidgeMaterial'
 import { TreeFractalMaterial } from '../shaders/TreeFractalMaterial'
 import { useTreeTexture } from '../lib/textureCache'
-import type { ShaderType } from '../store/editorStore'
+import type { ShaderType, ShaderTweaks } from '../store/editorStore'
 
 extend({ TreeConeMaterial, TreeRidgeMaterial, TreeFractalMaterial })
 
@@ -22,12 +22,13 @@ interface Props {
   windIntensity: number
   windDirection: [number, number]
   depthFactor: number
+  shaderTweaks: ShaderTweaks
   onClick: (id: string) => void
 }
 
 export function SingleTreeMesh({
   id, textureIndex, shader, position, rotation, scale,
-  isSelected, windIntensity, windDirection, depthFactor, onClick,
+  isSelected, windIntensity, windDirection, depthFactor, shaderTweaks, onClick,
 }: Props) {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const matRef = useRef<any>(null)
@@ -45,12 +46,27 @@ export function SingleTreeMesh({
     meshRef.current.instanceMatrix.needsUpdate = true
   }, [position, rotation, scale, shader]) // include shader so matrix resets after key-remount
 
+  // Keep a live ref to every prop that useFrame needs so the closure is never stale
+  const tweaksRef      = useRef(shaderTweaks)
+  const windRef        = useRef({ intensity: windIntensity, direction: windDirection })
+  const depthRef       = useRef(depthFactor)
+
+  // Sync refs on every render — O(1), no allocations
+  tweaksRef.current            = shaderTweaks
+  windRef.current.intensity    = windIntensity
+  windRef.current.direction    = windDirection
+  depthRef.current             = depthFactor
+
   useFrame((state) => {
-    if (!matRef.current) return
-    matRef.current.uTime = state.clock.elapsedTime
-    matRef.current.uWindIntensity = windIntensity
-    matRef.current.uWindDirection = new THREE.Vector2(windDirection[0], windDirection[1])
-    matRef.current.uDepthFactor = depthFactor
+    const mat = matRef.current
+    if (!mat) return
+    mat.uTime          = state.clock.elapsedTime
+    mat.uWindIntensity = windRef.current.intensity
+    mat.uWindDirection = new THREE.Vector2(windRef.current.direction[0], windRef.current.direction[1])
+    mat.uDepthFactor   = depthRef.current
+    mat.uHeightScale   = tweaksRef.current.heightScale
+    mat.uAmplitude     = tweaksRef.current.amplitude
+    mat.uFrequency     = tweaksRef.current.frequency
   })
 
   if (!texture) return null

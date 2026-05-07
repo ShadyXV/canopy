@@ -1,18 +1,53 @@
 import React from 'react'
 import { Trash2, X } from 'lucide-react'
-import { useEditorStore, ShaderType } from '../../store/editorStore'
+import { useEditorStore, ShaderType, ShaderTweaks } from '../../store/editorStore'
 
-const SHADERS: { id: ShaderType; label: string; color: string }[] = [
-  { id: 'cone',    label: 'Cone',    color: 'data-[active=true]:bg-sky-700    data-[active=true]:border-sky-500    data-[active=true]:text-white' },
-  { id: 'ridge',   label: 'Ridge',   color: 'data-[active=true]:bg-amber-700  data-[active=true]:border-amber-500  data-[active=true]:text-white' },
-  { id: 'fractal', label: 'Fractal', color: 'data-[active=true]:bg-purple-700 data-[active=true]:border-purple-500 data-[active=true]:text-white' },
+const SHADERS: { id: ShaderType; label: string; active: string }[] = [
+  { id: 'cone',    label: 'Cone',    active: 'bg-sky-700    border-sky-500    text-white' },
+  { id: 'ridge',   label: 'Ridge',   active: 'bg-amber-700  border-amber-500  text-white' },
+  { id: 'fractal', label: 'Fractal', active: 'bg-purple-700 border-purple-500 text-white' },
 ]
+
+function Row({
+  label, value, min, max, step, format = (v: number) => v.toFixed(2),
+  onChange,
+}: {
+  label: string; value: number; min: number; max: number; step: number
+  format?: (v: number) => string
+  onChange: (v: number) => void
+}) {
+  return (
+    <div>
+      <label className="flex justify-between text-[10px] text-neutral-500 font-semibold uppercase tracking-wider mb-1">
+        <span>{label}</span>
+        <span className="text-neutral-400 font-mono">{format(value)}</span>
+      </label>
+      <input
+        type="range" min={min} max={max} step={step} value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="w-full accent-emerald-500 h-1.5 rounded-full"
+      />
+    </div>
+  )
+}
+
+function setTweak(
+  id: string,
+  tweaks: ShaderTweaks,
+  key: keyof ShaderTweaks,
+  val: number,
+  updateAsset: (id: string, u: any) => void
+) {
+  updateAsset(id, { shaderTweaks: { ...tweaks, [key]: val } })
+}
 
 export function InspectorPanel() {
   const { placedAssets, selectedId, selectAsset, updateAsset, removeAsset } = useEditorStore()
   const asset = placedAssets.find((a) => a.id === selectedId)
-
   if (!asset) return null
+
+  const tw = asset.shaderTweaks
+  const upd = (key: keyof ShaderTweaks, val: number) => setTweak(asset.id, tw, key, val, updateAsset)
 
   return (
     <div className="w-64 bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/60 rounded-2xl shadow-2xl overflow-hidden">
@@ -44,12 +79,15 @@ export function InspectorPanel() {
         <div>
           <label className="block text-[10px] text-neutral-500 font-semibold uppercase tracking-wider mb-1.5">Shader</label>
           <div className="flex gap-1">
-            {SHADERS.map(({ id, label, color }) => (
+            {SHADERS.map(({ id, label, active }) => (
               <button
                 key={id}
-                data-active={asset.shader === id}
                 onClick={() => updateAsset(asset.id, { shader: id })}
-                className={`flex-1 text-[10px] font-semibold py-1.5 rounded-lg border border-neutral-700 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 transition-all ${color}`}
+                className={`flex-1 text-[10px] font-semibold py-1.5 rounded-lg border transition-all ${
+                  asset.shader === id
+                    ? active
+                    : 'border-neutral-700 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800'
+                }`}
               >
                 {label}
               </button>
@@ -57,55 +95,78 @@ export function InspectorPanel() {
           </div>
         </div>
 
-        {/* Scale */}
-        <div>
-          <label className="flex justify-between text-[10px] text-neutral-500 font-semibold uppercase tracking-wider mb-1.5">
-            <span>Scale</span>
-            <span className="text-neutral-400 font-mono">{asset.scale.toFixed(1)}</span>
-          </label>
-          <input
-            type="range" min={1} max={30} step={0.5}
+        {/* ── Shader Tweaks ─────────────────────────────── */}
+        <div className="space-y-3 rounded-xl bg-neutral-800/40 border border-neutral-700/40 p-2.5">
+          <p className="text-[9px] font-bold tracking-widest text-neutral-600 uppercase">Shader Tweaks</p>
+
+          <Row
+            label="Height"
+            value={tw.heightScale}
+            min={0.05} max={3} step={0.05}
+            onChange={(v) => upd('heightScale', v)}
+          />
+
+          {/* Amplitude + Frequency only meaningful for ridge / fractal */}
+          {(asset.shader === 'ridge' || asset.shader === 'fractal') && (
+            <>
+              <Row
+                label="Amplitude"
+                value={tw.amplitude}
+                min={0} max={2} step={0.05}
+                onChange={(v) => upd('amplitude', v)}
+              />
+              <Row
+                label="Frequency"
+                value={tw.frequency}
+                min={0.25} max={4} step={0.05}
+                onChange={(v) => upd('frequency', v)}
+              />
+            </>
+          )}
+        </div>
+
+        {/* ── Transform ─────────────────────────────────── */}
+        <div className="space-y-3 rounded-xl bg-neutral-800/40 border border-neutral-700/40 p-2.5">
+          <p className="text-[9px] font-bold tracking-widest text-neutral-600 uppercase">Transform</p>
+
+          <Row
+            label="Scale"
             value={asset.scale}
-            onChange={(e) => updateAsset(asset.id, { scale: parseFloat(e.target.value) })}
-            className="w-full accent-emerald-500 h-1.5 rounded-full"
+            min={1} max={30} step={0.5}
+            format={(v) => v.toFixed(1)}
+            onChange={(v) => updateAsset(asset.id, { scale: v })}
           />
-        </div>
 
-        {/* Rotation */}
-        <div>
-          <label className="flex justify-between text-[10px] text-neutral-500 font-semibold uppercase tracking-wider mb-1.5">
-            <span>Rotation</span>
-            <span className="text-neutral-400 font-mono">{Math.round((asset.rotation * 180) / Math.PI)}°</span>
-          </label>
-          <input
-            type="range" min={0} max={Math.PI * 2} step={0.05}
+          <Row
+            label="Rotation"
             value={asset.rotation}
-            onChange={(e) => updateAsset(asset.id, { rotation: parseFloat(e.target.value) })}
-            className="w-full accent-emerald-500 h-1.5 rounded-full"
+            min={0} max={Math.PI * 2} step={0.05}
+            format={(v) => `${Math.round((v * 180) / Math.PI)}°`}
+            onChange={(v) => updateAsset(asset.id, { rotation: v })}
           />
-        </div>
 
-        {/* Position readout */}
-        <div>
-          <label className="block text-[10px] text-neutral-500 font-semibold uppercase tracking-wider mb-1.5">Position</label>
-          <div className="flex gap-1.5">
-            {(['x', 'y'] as const).map((axis, i) => (
-              <div key={axis} className="flex-1 flex items-center gap-1 bg-neutral-800/60 border border-neutral-700/60 rounded-lg px-2 py-1">
-                <span className="text-[9px] font-bold text-neutral-500 uppercase">{axis}</span>
-                <input
-                  type="number"
-                  value={asset.position[i].toFixed(1)}
-                  step={0.5}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value)
-                    const newPos: [number, number] = [...asset.position] as [number, number]
-                    newPos[i] = isNaN(val) ? newPos[i] : val
-                    updateAsset(asset.id, { position: newPos })
-                  }}
-                  className="w-full bg-transparent text-[10px] text-neutral-300 font-mono outline-none"
-                />
-              </div>
-            ))}
+          {/* XY position */}
+          <div>
+            <label className="block text-[10px] text-neutral-500 font-semibold uppercase tracking-wider mb-1">Position</label>
+            <div className="flex gap-1.5">
+              {(['x', 'y'] as const).map((axis, i) => (
+                <div key={axis} className="flex-1 flex items-center gap-1 bg-neutral-900/60 border border-neutral-700/60 rounded-lg px-2 py-1">
+                  <span className="text-[9px] font-bold text-neutral-500 uppercase">{axis}</span>
+                  <input
+                    type="number"
+                    value={asset.position[i].toFixed(1)}
+                    step={0.5}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value)
+                      const p: [number, number] = [...asset.position] as [number, number]
+                      p[i] = isNaN(val) ? p[i] : val
+                      updateAsset(asset.id, { position: p })
+                    }}
+                    className="w-full bg-transparent text-[10px] text-neutral-300 font-mono outline-none"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

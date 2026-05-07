@@ -2,6 +2,14 @@ import { create } from 'zustand'
 
 export type ShaderType = 'cone' | 'ridge' | 'fractal'
 
+export interface ShaderTweaks {
+  heightScale: number  // 0.1–3.0  — Z extrusion multiplier
+  amplitude:   number  // 0.0–2.0  — fbm waviness (ridge/fractal)
+  frequency:   number  // 0.5–4.0  — spatial frequency of noise (ridge/fractal)
+}
+
+const DEFAULT_TWEAKS: ShaderTweaks = { heightScale: 0.5, amplitude: 0.6, frequency: 1.0 }
+
 export interface PlacedAsset {
   id: string
   textureIndex: number
@@ -9,6 +17,7 @@ export interface PlacedAsset {
   position: [number, number]
   rotation: number
   scale: number
+  shaderTweaks: ShaderTweaks
 }
 
 interface EditorState {
@@ -30,7 +39,7 @@ interface EditorState {
   setPendingAsset: (asset: { textureIndex: number; shader: ShaderType } | null) => void
   placeAsset: (textureIndex: number, shader: ShaderType, position: [number, number]) => void
   selectAsset: (id: string | null) => void
-  updateAsset: (id: string, updates: Partial<Pick<PlacedAsset, 'shader' | 'rotation' | 'scale' | 'position'>>) => void
+  updateAsset: (id: string, updates: Partial<Pick<PlacedAsset, 'shader' | 'rotation' | 'scale' | 'position' | 'shaderTweaks'>>) => void
   removeAsset: (id: string) => void
   setWindIntensity: (v: number) => void
   setWindDirection: (v: number) => void
@@ -60,7 +69,7 @@ export const useEditorStore = create<EditorState>((set) => ({
     set((state) => {
       const id = genId()
       return {
-        placedAssets: [...state.placedAssets, { id, textureIndex, shader, position, rotation: 0, scale: 8 }],
+        placedAssets: [...state.placedAssets, { id, textureIndex, shader, position, rotation: 0, scale: 8, shaderTweaks: { ...DEFAULT_TWEAKS } }],
         pendingAsset: null,
         selectedId: id,
       }

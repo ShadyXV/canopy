@@ -7,6 +7,9 @@ export const TreeRidgeMaterial = shaderMaterial(
     uWindIntensity: 0.5,
     uWindDirection: new THREE.Vector2(1.0, 0.5),
     uDepthFactor: 1.0,
+    uAmplitude: 0.6,
+    uFrequency: 1.0,
+    uHeightScale: 0.5,
     uTexture: new THREE.Texture(),
   },
   `
@@ -18,6 +21,9 @@ export const TreeRidgeMaterial = shaderMaterial(
     uniform float uWindIntensity;
     uniform vec2 uWindDirection;
     uniform float uDepthFactor;
+    uniform float uAmplitude;
+    uniform float uFrequency;
+    uniform float uHeightScale;
 
     float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123); }
     float noise(vec2 st) {
@@ -43,12 +49,12 @@ export const TreeRidgeMaterial = shaderMaterial(
       vec4 instanceWorldPos = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
 
       // Evaluate height using purely noise (no base dome)
-      float n = fbm(uv * 3.0 + instanceWorldPos.xy * 0.1);
-      float height = n * edgeFade;
+      float n = fbm(uv * 3.0 * uFrequency + instanceWorldPos.xy * 0.1);
+      float height = n * edgeFade * uAmplitude;
 
       vec3 pos = position;
       // Exaggerate depth for the terrain to make it peaky
-      pos.z += height * uDepthFactor * 1.5;
+      pos.z += height * uDepthFactor * 1.5 * uHeightScale;
 
       float temporalPhase = uTime * 2.0;
       float spatialPhase = instanceWorldPos.x * 0.1 + instanceWorldPos.y * 0.1;
@@ -62,10 +68,10 @@ export const TreeRidgeMaterial = shaderMaterial(
 
       // Estimate normal from the fbm terrain to get realistic lighting, completely abandoning the cone shape.
       float eps = 0.02;
-      float nL = fbm(vec2(uv.x - eps, uv.y) * 3.0 + instanceWorldPos.xy * 0.1) * edgeFade;
-      float nR = fbm(vec2(uv.x + eps, uv.y) * 3.0 + instanceWorldPos.xy * 0.1) * edgeFade;
-      float nD = fbm(vec2(uv.x, uv.y - eps) * 3.0 + instanceWorldPos.xy * 0.1) * edgeFade;
-      float nU = fbm(vec2(uv.x, uv.y + eps) * 3.0 + instanceWorldPos.xy * 0.1) * edgeFade;
+      float nL = fbm(vec2(uv.x - eps, uv.y) * 3.0 * uFrequency + instanceWorldPos.xy * 0.1) * edgeFade * uAmplitude;
+      float nR = fbm(vec2(uv.x + eps, uv.y) * 3.0 * uFrequency + instanceWorldPos.xy * 0.1) * edgeFade * uAmplitude;
+      float nD = fbm(vec2(uv.x, uv.y - eps) * 3.0 * uFrequency + instanceWorldPos.xy * 0.1) * edgeFade * uAmplitude;
+      float nU = fbm(vec2(uv.x, uv.y + eps) * 3.0 * uFrequency + instanceWorldPos.xy * 0.1) * edgeFade * uAmplitude;
 
       float nx = (nL - nR) * uDepthFactor * 20.0;
       float ny = (nD - nU) * uDepthFactor * 20.0;

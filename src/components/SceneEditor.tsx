@@ -34,7 +34,13 @@ export function SceneEditor({ windIntensity, windDirection, depthFactor }: Props
       {placedAssets.map((asset) => (
         <SingleTreeMesh
           key={asset.id}
-          {...asset}
+          id={asset.id}
+          textureIndex={asset.textureIndex}
+          shader={asset.shader}
+          position={asset.position}
+          rotation={asset.rotation}
+          scale={asset.scale}
+          shaderTweaks={asset.shaderTweaks}
           isSelected={asset.id === selectedId}
           windIntensity={windIntensity}
           windDirection={windDirection}
