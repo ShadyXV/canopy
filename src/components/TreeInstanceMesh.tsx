@@ -1,0 +1,149 @@
+import React, { useEffect, useMemo, useRef } from 'react'
+import { extend, useFrame } from '@react-three/fiber'
+import * as THREE from 'three'
+import { TreeConeMaterial } from '../shaders/TreeConeMaterial'
+import { TreeRidgeMaterial } from '../shaders/TreeRidgeMaterial'
+import { TreeFractalMaterial } from '../shaders/TreeFractalMaterial'
+import { useTreeTexture } from '../lib/textureCache'
+import type { ShaderTweaks, ShaderType } from '../store/editorStore'
+
+extend({ TreeConeMaterial, TreeRidgeMaterial, TreeFractalMaterial })
+
+export interface TreeInstance {
+  position: [number, number]
+  rotation: number
+  scale: number
+}
+
+interface Props {
+  textureIndex: number
+  shader: ShaderType
+  instances: TreeInstance[]
+  windIntensity: number
+  windDirection: [number, number]
+  depthFactor: number
+  shaderTweaks?: ShaderTweaks
+  selectedInstance?: TreeInstance | null
+  onClick?: () => void
+}
+
+const DEFAULT_TWEAKS: ShaderTweaks = { heightScale: 0.5, amplitude: 0.6, frequency: 1.0 }
+
+export function createSeededTreeInstances({
+  textureIndex,
+  count,
+  areaSize,
+  positionOffset = [0, 0],
+  seedOffset,
+}: {
+  textureIndex: number
+  count: number
+  areaSize: number
+  positionOffset?: [number, number]
+  seedOffset: number
+}): TreeInstance[] {
+  const seededRandom = (seed: number) => {
+    let t = seed + 0x6D2B79F5
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+
+  return Array.from({ length: count }, (_, i) => {
+    const seed = textureIndex * 10000 + i + seedOffset
+    return {
+      position: [
+        (seededRandom(seed) - 0.5) * areaSize + positionOffset[0],
+        (seededRandom(seed + 1) - 0.5) * areaSize + positionOffset[1],
+      ],
+      rotation: seededRandom(seed + 2) * Math.PI * 2,
+      scale: 5.0 + seededRandom(seed + 3) * 10.0,
+    }
+  })
+}
+
+export function TreeInstanceMesh({
+  textureIndex,
+  shader,
+  instances,
+  windIntensity,
+  windDirection,
+  depthFactor,
+  shaderTweaks = DEFAULT_TWEAKS,
+  selectedInstance = null,
+  onClick,
+}: Props) {
+  const meshRef = useRef<THREE.InstancedMesh>(null)
+  const matRef = useRef<any>(null)
+  const texture = useTreeTexture(textureIndex)
+
+  const tweaksRef = useRef(shaderTweaks)
+  const windRef = useRef({ intensity: windIntensity, direction: windDirection })
+  const depthRef = useRef(depthFactor)
+
+  tweaksRef.current = shaderTweaks
+  windRef.current.intensity = windIntensity
+  windRef.current.direction = windDirection
+  depthRef.current = depthFactor
+
+  useEffect(() => {
+    if (!meshRef.current) return
+
+    const dummy = new THREE.Object3D()
+    instances.forEach((instance, i) => {
+      dummy.position.set(instance.position[0], instance.position[1], 0)
+      dummy.rotation.z = instance.rotation
+      dummy.scale.setScalar(instance.scale)
+      dummy.updateMatrix()
+      meshRef.current?.setMatrixAt(i, dummy.matrix)
+    })
+    meshRef.current.instanceMatrix.needsUpdate = true
+  }, [instances, shader])
+
+  useFrame((state) => {
+    const mat = matRef.current
+    if (!mat) return
+
+    mat.uTime = state.clock.elapsedTime
+    mat.uWindIntensity = windRef.current.intensity
+    mat.uWindDirection = new THREE.Vector2(windRef.current.direction[0], windRef.current.direction[1])
+    mat.uDepthFactor = depthRef.current
+    mat.uHeightScale = tweaksRef.current.heightScale
+    mat.uAmplitude = tweaksRef.current.amplitude
+    mat.uFrequency = tweaksRef.current.frequency
+  })
+
+  const matProps = useMemo(() => ({ ref: matRef, uTexture: texture, transparent: true, depthWrite: true }), [texture])
+
+  if (!texture || instances.length === 0) return null
+
+  const handleClick = (e: any) => {
+    if (!onClick) return
+    e.stopPropagation()
+    onClick()
+  }
+
+  return (
+    <>
+      {selectedInstance && (
+        <mesh position={[selectedInstance.position[0], selectedInstance.position[1], -0.5]}>
+          <ringGeometry args={[selectedInstance.scale * 0.48, selectedInstance.scale * 0.58, 48]} />
+          <meshBasicMaterial color="#00ffbb" transparent opacity={0.85} depthWrite={false} />
+        </mesh>
+      )}
+
+      <instancedMesh
+        key={shader}
+        ref={meshRef}
+        args={[null as any, null as any, instances.length]}
+        frustumCulled={false}
+        onClick={handleClick}
+      >
+        <planeGeometry args={[1, 1, 32, 32]} />
+        {shader === 'cone' && <treeConeMaterial {...matProps} />}
+        {shader === 'ridge' && <treeRidgeMaterial {...matProps} />}
+        {shader === 'fractal' && <treeFractalMaterial {...matProps} />}
+      </instancedMesh>
+    </>
+  )
+}
