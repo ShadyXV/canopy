@@ -5,7 +5,8 @@ import { TreeConeMaterial } from '../shaders/TreeConeMaterial'
 import { TreeRidgeMaterial } from '../shaders/TreeRidgeMaterial'
 import { TreeFractalMaterial } from '../shaders/TreeFractalMaterial'
 import { useTreeTexture } from '../lib/textureCache'
-import type { ShaderTweaks, ShaderType } from '../store/editorStore'
+import type { ShaderTweaks } from '../store/editorStore'
+import { DEFAULT_SHADER_TWEAKS, renderTreeShaderMaterial, type ShaderType } from '../lib/shaderVariants'
 
 extend({ TreeConeMaterial, TreeRidgeMaterial, TreeFractalMaterial })
 
@@ -26,8 +27,6 @@ interface Props {
   selectedInstance?: TreeInstance | null
   onClick?: () => void
 }
-
-const DEFAULT_TWEAKS: ShaderTweaks = { heightScale: 0.5, amplitude: 0.6, frequency: 1.0 }
 
 export function createSeededTreeInstances({
   textureIndex,
@@ -69,7 +68,7 @@ export function TreeInstanceMesh({
   windIntensity,
   windDirection,
   depthFactor,
-  shaderTweaks = DEFAULT_TWEAKS,
+  shaderTweaks = DEFAULT_SHADER_TWEAKS,
   selectedInstance = null,
   onClick,
 }: Props) {
@@ -140,9 +139,7 @@ export function TreeInstanceMesh({
         onClick={handleClick}
       >
         <planeGeometry args={[1, 1, 32, 32]} />
-        {shader === 'cone' && <treeConeMaterial {...matProps} />}
-        {shader === 'ridge' && <treeRidgeMaterial {...matProps} />}
-        {shader === 'fractal' && <treeFractalMaterial {...matProps} />}
+        {renderTreeShaderMaterial({ shader, materialProps: matProps })}
       </instancedMesh>
     </>
   )

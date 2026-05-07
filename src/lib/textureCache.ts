@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { useState, useEffect } from 'react'
 import { generateFallbackTexture } from './treeUtils'
+import { getTreeAsset, TREE_ASSETS } from './treeAssetCatalog'
 
 const _cache = new Map<number, THREE.Texture>()
 const _pending = new Map<number, Promise<THREE.Texture>>()
@@ -11,7 +12,7 @@ export function preloadTexture(index: number): Promise<THREE.Texture> {
 
   const p = new Promise<THREE.Texture>((resolve) => {
     new THREE.TextureLoader().load(
-      `/tree_${index}.png`,
+      getTreeAsset(index).texturePath,
       (t) => { t.colorSpace = THREE.SRGBColorSpace; _cache.set(index, t); _pending.delete(index); resolve(t) },
       undefined,
       () => {
@@ -38,5 +39,5 @@ export function useTreeTexture(index: number): THREE.Texture | null {
 }
 
 export function preloadAllTextures() {
-  for (let i = 12; i <= 16; i++) preloadTexture(i)
+  TREE_ASSETS.forEach((asset) => preloadTexture(asset.id))
 }

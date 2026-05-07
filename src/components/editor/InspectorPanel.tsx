@@ -1,13 +1,9 @@
 import React from 'react'
 import { Trash2, X } from 'lucide-react'
-import { useEditorStore, ShaderType, ShaderTweaks } from '../../store/editorStore'
+import { useEditorStore, ShaderTweaks } from '../../store/editorStore'
 import { ShaderPreviewCanvas } from './ShaderPreviewCanvas'
-
-const SHADERS: { id: ShaderType; label: string; active: string }[] = [
-  { id: 'cone',    label: 'Cone',    active: 'bg-sky-700    border-sky-500    text-white' },
-  { id: 'ridge',   label: 'Ridge',   active: 'bg-amber-700  border-amber-500  text-white' },
-  { id: 'fractal', label: 'Fractal', active: 'bg-purple-700 border-purple-500 text-white' },
-]
+import { getTreeAsset } from '../../lib/treeAssetCatalog'
+import { SHADER_VARIANTS, shaderSupportsTweak } from '../../lib/shaderVariants'
 
 function Row({
   label, value, min, max, step, format = (v: number) => v.toFixed(2),
@@ -46,6 +42,7 @@ export function InspectorPanel() {
   const { placedAssets, selectedId, selectAsset, updateAsset, removeAsset } = useEditorStore()
   const asset = placedAssets.find((a) => a.id === selectedId)
   if (!asset) return null
+  const treeAsset = getTreeAsset(asset.textureIndex)
 
   const tw = asset.shaderTweaks
   const upd = (key: keyof ShaderTweaks, val: number) => setTweak(asset.id, tw, key, val, updateAsset)
@@ -56,7 +53,7 @@ export function InspectorPanel() {
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-neutral-700/60">
         <div>
           <p className="text-[10px] font-bold tracking-widest text-neutral-500 uppercase">Inspector</p>
-          <p className="text-[11px] text-neutral-300 mt-0.5">Tree #{asset.textureIndex}</p>
+          <p className="text-[11px] text-neutral-300 mt-0.5">{treeAsset.label}</p>
         </div>
         <div className="flex gap-1">
           <button
@@ -80,17 +77,17 @@ export function InspectorPanel() {
         <div>
           <label className="block text-[10px] text-neutral-500 font-semibold uppercase tracking-wider mb-1.5">Shader</label>
           <div className="flex gap-1">
-            {SHADERS.map(({ id, label, active }) => (
+            {SHADER_VARIANTS.map((variant) => (
               <button
-                key={id}
-                onClick={() => updateAsset(asset.id, { shader: id })}
+                key={variant.id}
+                onClick={() => updateAsset(asset.id, { shader: variant.id })}
                 className={`flex-1 text-[10px] font-semibold py-1.5 rounded-lg border transition-all ${
-                  asset.shader === id
-                    ? active
+                  asset.shader === variant.id
+                    ? variant.inspectorActiveClass
                     : 'border-neutral-700 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800'
                 }`}
               >
-                {label}
+                {variant.label}
               </button>
             ))}
           </div>
@@ -126,16 +123,13 @@ export function InspectorPanel() {
             onChange={(v) => upd('amplitude', v)}
           />
 
-          {/* Frequency only meaningful for ridge / fractal */}
-          {(asset.shader === 'ridge' || asset.shader === 'fractal') && (
-            <>
-              <Row
-                label="Frequency"
-                value={tw.frequency}
-                min={0.25} max={4} step={0.05}
-                onChange={(v) => upd('frequency', v)}
-              />
-            </>
+          {shaderSupportsTweak(asset.shader, 'frequency') && (
+            <Row
+              label="Frequency"
+              value={tw.frequency}
+              min={0.25} max={4} step={0.05}
+              onChange={(v) => upd('frequency', v)}
+            />
           )}
         </div>
 

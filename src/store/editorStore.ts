@@ -1,14 +1,12 @@
 import { create } from 'zustand'
-
-export type ShaderType = 'cone' | 'ridge' | 'fractal'
+import { DEFAULT_SHADER_TWEAKS, type ShaderType } from '../lib/shaderVariants'
+export type { ShaderType } from '../lib/shaderVariants'
 
 export interface ShaderTweaks {
   heightScale: number  // 0.1–3.0  — Z extrusion multiplier
   amplitude:   number  // 0.0–2.0  — fbm waviness (ridge/fractal)
   frequency:   number  // 0.5–4.0  — spatial frequency of noise (ridge/fractal)
 }
-
-const DEFAULT_TWEAKS: ShaderTweaks = { heightScale: 0.5, amplitude: 0.6, frequency: 1.0 }
 
 export interface PlacedAsset {
   id: string
@@ -69,7 +67,7 @@ export const useEditorStore = create<EditorState>((set) => ({
     set((state) => {
       const id = genId()
       return {
-        placedAssets: [...state.placedAssets, { id, textureIndex, shader, position, rotation: 0, scale: 8, shaderTweaks: { ...DEFAULT_TWEAKS } }],
+        placedAssets: [...state.placedAssets, { id, textureIndex, shader, position, rotation: 0, scale: 8, shaderTweaks: { ...DEFAULT_SHADER_TWEAKS } }],
         pendingAsset: null,
         selectedId: id,
       }

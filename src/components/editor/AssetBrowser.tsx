@@ -1,21 +1,18 @@
 import React, { useState } from 'react'
-import { useEditorStore, ShaderType } from '../../store/editorStore'
+import { useEditorStore } from '../../store/editorStore'
 import { ShaderPreviewCanvas } from './ShaderPreviewCanvas'
+import { TREE_ASSETS, type TreeAsset } from '../../lib/treeAssetCatalog'
+import { DEFAULT_SHADER_TWEAKS, SHADER_VARIANTS, type ShaderType } from '../../lib/shaderVariants'
 
-const ASSETS = [12, 13, 14, 15, 16] as const
-const DEFAULT_SHADERS: Record<number, ShaderType> = { 12: 'cone', 13: 'ridge', 14: 'ridge', 15: 'fractal', 16: 'fractal' }
-const SHADER_LABELS: Record<ShaderType, string> = { cone: 'Cone', ridge: 'Ridge', fractal: 'Fractal' }
-const DEFAULT_TWEAKS = { heightScale: 0.5, amplitude: 0.6, frequency: 1.0 }
-
-function AssetCard({ index }: { index: number }) {
+function AssetCard({ asset }: { asset: TreeAsset }) {
   const { pendingAsset, setPendingAsset } = useEditorStore()
-  const [shader, setShader] = useState<ShaderType>(DEFAULT_SHADERS[index])
+  const [shader, setShader] = useState<ShaderType>(asset.defaultShader)
 
-  const isPending = pendingAsset?.textureIndex === index && pendingAsset?.shader === shader
+  const isPending = pendingAsset?.textureIndex === asset.id && pendingAsset?.shader === shader
 
   const handlePlace = () => {
     if (isPending) { setPendingAsset(null); return }
-    setPendingAsset({ textureIndex: index, shader })
+    setPendingAsset({ textureIndex: asset.id, shader })
   }
 
   return (
@@ -29,8 +26,8 @@ function AssetCard({ index }: { index: number }) {
       {/* Large Texture Preview */}
       <div className="relative bg-neutral-900 border-b border-neutral-700/40 p-2 flex justify-center">
         <img
-          src={`/tree_${index}.png`}
-          alt={`Tree ${index}`}
+          src={asset.texturePath}
+          alt={asset.label}
           className="h-32 object-contain"
         />
 
@@ -47,13 +44,13 @@ function AssetCard({ index }: { index: number }) {
       {/* Card footer */}
       <div className="p-2 space-y-2 bg-neutral-900/60">
         <div className="flex items-center justify-between">
-          <p className="text-[11px] font-semibold text-neutral-300">Tree #{index}</p>
+          <p className="text-[11px] font-semibold text-neutral-300">{asset.label}</p>
         </div>
 
         {/* Shader selection + Tiny 3D Preview */}
         <div className="flex gap-2 items-center">
           <div className="w-10 h-10 rounded overflow-hidden border border-neutral-700/60 bg-neutral-950 flex-shrink-0">
-            <ShaderPreviewCanvas shader={shader} tweaks={DEFAULT_TWEAKS} height={40} interactive={false} />
+            <ShaderPreviewCanvas shader={shader} tweaks={DEFAULT_SHADER_TWEAKS} height={40} interactive={false} />
           </div>
           
           <select
@@ -61,12 +58,12 @@ function AssetCard({ index }: { index: number }) {
             onChange={(e) => {
               const s = e.target.value as ShaderType
               setShader(s)
-              if (isPending) setPendingAsset({ textureIndex: index, shader: s })
+              if (isPending) setPendingAsset({ textureIndex: asset.id, shader: s })
             }}
             className="flex-1 text-[10px] bg-neutral-900 border border-neutral-700 text-neutral-300 rounded-md px-1.5 py-1.5 outline-none focus:border-emerald-500"
           >
-            {(Object.keys(SHADER_LABELS) as ShaderType[]).map((s) => (
-              <option key={s} value={s}>{SHADER_LABELS[s]}</option>
+            {SHADER_VARIANTS.map((variant) => (
+              <option key={variant.id} value={variant.id}>{variant.label}</option>
             ))}
           </select>
         </div>
@@ -94,8 +91,8 @@ export function AssetBrowser() {
         <p className="text-[9px] text-neutral-600 mt-0.5">Drag the previews to rotate · click Place to stamp</p>
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-2">
-        {ASSETS.map((idx) => (
-          <AssetCard key={idx} index={idx} />
+        {TREE_ASSETS.map((asset) => (
+          <AssetCard key={asset.id} asset={asset} />
         ))}
       </div>
     </div>

@@ -1,9 +1,9 @@
 import React, { useRef } from 'react'
 import { Canvas, useFrame, extend } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
-import * as THREE from 'three'
 import { ConePreviewMaterial, RidgePreviewMaterial, FractalPreviewMaterial } from '../../shaders/PreviewMaterials'
-import type { ShaderType, ShaderTweaks } from '../../store/editorStore'
+import type { ShaderTweaks } from '../../store/editorStore'
+import { DEFAULT_SHADER_TWEAKS, renderPreviewShaderMaterial, type ShaderType } from '../../lib/shaderVariants'
 
 extend({ ConePreviewMaterial, RidgePreviewMaterial, FractalPreviewMaterial })
 
@@ -14,8 +14,6 @@ declare module '@react-three/fiber' {
     fractalPreviewMaterial: any
   }
 }
-
-const DEFAULT_TWEAKS: ShaderTweaks = { heightScale: 0.5, amplitude: 0.6, frequency: 1.0 }
 
 // Background grid plane for depth perception
 function Grid() {
@@ -47,9 +45,7 @@ function PreviewMesh({ shader, tweaks }: { shader: ShaderType; tweaks: ShaderTwe
   return (
     <mesh key={shader}>
       {geo}
-      {shader === 'cone'    && <conePreviewMaterial    ref={matRef} side={THREE.DoubleSide} />}
-      {shader === 'ridge'   && <ridgePreviewMaterial   ref={matRef} side={THREE.DoubleSide} />}
-      {shader === 'fractal' && <fractalPreviewMaterial ref={matRef} side={THREE.DoubleSide} />}
+      {renderPreviewShaderMaterial({ shader, materialRef: matRef })}
     </mesh>
   )
 }
@@ -63,7 +59,7 @@ interface Props {
   interactive?: boolean
 }
 
-export function ShaderPreviewCanvas({ shader, tweaks = DEFAULT_TWEAKS, height = 140, interactive = true }: Props) {
+export function ShaderPreviewCanvas({ shader, tweaks = DEFAULT_SHADER_TWEAKS, height = 140, interactive = true }: Props) {
   return (
     <div style={{ width: '100%', height }} className="rounded-lg overflow-hidden bg-neutral-950">
       <Canvas
