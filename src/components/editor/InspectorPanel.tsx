@@ -119,15 +119,16 @@ export function InspectorPanel() {
             onChange={(v) => upd('heightScale', v)}
           />
 
-          {/* Amplitude + Frequency only meaningful for ridge / fractal */}
+          <Row
+            label="Strength / Waviness"
+            value={tw.amplitude}
+            min={0} max={2} step={0.05}
+            onChange={(v) => upd('amplitude', v)}
+          />
+
+          {/* Frequency only meaningful for ridge / fractal */}
           {(asset.shader === 'ridge' || asset.shader === 'fractal') && (
             <>
-              <Row
-                label="Amplitude"
-                value={tw.amplitude}
-                min={0} max={2} step={0.05}
-                onChange={(v) => upd('amplitude', v)}
-              />
               <Row
                 label="Frequency"
                 value={tw.frequency}

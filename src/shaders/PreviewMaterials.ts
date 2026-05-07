@@ -24,23 +24,33 @@ const makeFrag = (lo: string, hi: string, rimCol: string) => `
 // ── Cone vertex (dome – no instanceMatrix) ────────────────────────────────
 const coneVert = `
   varying vec2 vUv; varying vec3 vNormal;
-  uniform float uTime; uniform float uDepthFactor; uniform float uHeightScale;
+  uniform float uTime; uniform float uDepthFactor; uniform float uHeightScale; uniform float uAmplitude;
   void main() {
     vUv = uv;
     float dist   = distance(uv, vec2(0.5));
     float height = smoothstep(0.5, 0.0, dist);
     vec3 pos     = position;
-    pos.z       += height * uDepthFactor * uHeightScale;
+    pos.z       += height * uDepthFactor * uHeightScale * uAmplitude;
     pos.x       += height * sin(uTime * 1.8) * 0.04;
-    float nx     = (0.5 - uv.x) * uDepthFactor * 4.0;
-    float ny     = (0.5 - uv.y) * uDepthFactor * 4.0;
+    
+    float t = clamp(1.0 - dist * 2.0, 0.0, 1.0); 
+    float dh_dt = 6.0 * t * (1.0 - t);
+    float dh_dr = dh_dt * -2.0;
+    
+    float dr_dx = (dist > 0.0001) ? (uv.x - 0.5) / dist : 0.0;
+    float dr_dy = (dist > 0.0001) ? (uv.y - 0.5) / dist : 0.0;
+    
+    float slope = uDepthFactor * uHeightScale * uAmplitude;
+    float nx = -dh_dr * dr_dx * slope;
+    float ny = -dh_dr * dr_dy * slope;
+
     vNormal      = normalize(vec3(nx, ny, 1.0));
     gl_Position  = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
   }
 `
 
 export const ConePreviewMaterial = shaderMaterial(
-  { uTime: 0, uDepthFactor: 2.5, uHeightScale: 0.5 },
+  { uTime: 0, uDepthFactor: 2.5, uHeightScale: 0.5, uAmplitude: 1.0 },
   coneVert,
   makeFrag('0.06,0.20,0.06', '0.22,0.62,0.18', '0.4,0.9,0.5')
 )

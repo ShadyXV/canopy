@@ -26,9 +26,13 @@ function AssetCard({ index }: { index: number }) {
           : 'border-neutral-700/60 bg-neutral-800/40 hover:border-neutral-600'
       }`}
     >
-      {/* 3D Shader Preview */}
-      <div className="relative">
-        <ShaderPreviewCanvas shader={shader} tweaks={DEFAULT_TWEAKS} height={130} />
+      {/* Large Texture Preview */}
+      <div className="relative bg-neutral-900 border-b border-neutral-700/40 p-2 flex justify-center">
+        <img
+          src={`/tree_${index}.png`}
+          alt={`Tree ${index}`}
+          className="h-32 object-contain"
+        />
 
         {/* Overlay when pending */}
         {isPending && (
@@ -38,40 +42,34 @@ function AssetCard({ index }: { index: number }) {
             </span>
           </div>
         )}
-
-        {/* Shader type badge */}
-        <div className="absolute top-1.5 right-1.5">
-          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/60 text-neutral-400 border border-neutral-700/50">
-            {SHADER_LABELS[shader]}
-          </span>
-        </div>
       </div>
 
       {/* Card footer */}
-      <div className="p-2 space-y-1.5 bg-neutral-900/60">
+      <div className="p-2 space-y-2 bg-neutral-900/60">
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-semibold text-neutral-300">Tree #{index}</p>
-          {/* Tiny PNG thumbnail */}
-          <img
-            src={`/tree_${index}.png`}
-            alt={`Tree ${index}`}
-            className="w-7 h-7 object-contain rounded bg-neutral-800 border border-neutral-700/40"
-          />
         </div>
 
-        <select
-          value={shader}
-          onChange={(e) => {
-            const s = e.target.value as ShaderType
-            setShader(s)
-            if (isPending) setPendingAsset({ textureIndex: index, shader: s })
-          }}
-          className="w-full text-[10px] bg-neutral-900 border border-neutral-700 text-neutral-300 rounded-md px-1.5 py-1 outline-none focus:border-emerald-500"
-        >
-          {(Object.keys(SHADER_LABELS) as ShaderType[]).map((s) => (
-            <option key={s} value={s}>{SHADER_LABELS[s]}</option>
-          ))}
-        </select>
+        {/* Shader selection + Tiny 3D Preview */}
+        <div className="flex gap-2 items-center">
+          <div className="w-10 h-10 rounded overflow-hidden border border-neutral-700/60 bg-neutral-950 flex-shrink-0">
+            <ShaderPreviewCanvas shader={shader} tweaks={DEFAULT_TWEAKS} height={40} interactive={false} />
+          </div>
+          
+          <select
+            value={shader}
+            onChange={(e) => {
+              const s = e.target.value as ShaderType
+              setShader(s)
+              if (isPending) setPendingAsset({ textureIndex: index, shader: s })
+            }}
+            className="flex-1 text-[10px] bg-neutral-900 border border-neutral-700 text-neutral-300 rounded-md px-1.5 py-1.5 outline-none focus:border-emerald-500"
+          >
+            {(Object.keys(SHADER_LABELS) as ShaderType[]).map((s) => (
+              <option key={s} value={s}>{SHADER_LABELS[s]}</option>
+            ))}
+          </select>
+        </div>
 
         <button
           onClick={handlePlace}

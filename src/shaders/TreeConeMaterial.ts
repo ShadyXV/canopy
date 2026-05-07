@@ -8,6 +8,7 @@ export const TreeConeMaterial = shaderMaterial(
     uWindDirection: new THREE.Vector2(1.0, 0.5),
     uDepthFactor: 1.0,
     uHeightScale: 0.5,
+    uAmplitude: 1.0,
     uTexture: new THREE.Texture(),
   },
   `
@@ -20,6 +21,7 @@ export const TreeConeMaterial = shaderMaterial(
     uniform vec2 uWindDirection;
     uniform float uDepthFactor;
     uniform float uHeightScale;
+    uniform float uAmplitude;
 
     void main() {
       vUv = uv;
@@ -28,7 +30,7 @@ export const TreeConeMaterial = shaderMaterial(
       float height = smoothstep(0.5, 0.0, dist);
 
       vec3 pos = position;
-      pos.z += height * uDepthFactor * uHeightScale;
+      pos.z += height * uDepthFactor * uHeightScale * uAmplitude;
 
       vec4 instanceWorldPos = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
 
@@ -42,8 +44,18 @@ export const TreeConeMaterial = shaderMaterial(
       pos.x += windDir.x * sway;
       pos.y += windDir.y * sway;
 
-      float nx = (0.5 - uv.x) * uDepthFactor * 4.0;
-      float ny = (0.5 - uv.y) * uDepthFactor * 4.0;
+      // Use the 'dist' already calculated on line 29
+      float t = clamp(1.0 - dist * 2.0, 0.0, 1.0); 
+      float dh_dt = 6.0 * t * (1.0 - t);
+      float dh_dr = dh_dt * -2.0;
+      
+      float dr_dx = (dist > 0.0001) ? (uv.x - 0.5) / dist : 0.0;
+      float dr_dy = (dist > 0.0001) ? (uv.y - 0.5) / dist : 0.0;
+      
+      float slope = uDepthFactor * uHeightScale * uAmplitude;
+      float nx = -dh_dr * dr_dx * slope;
+      float ny = -dh_dr * dr_dy * slope;
+
       vec3 localNormal = normalize(vec3(nx, ny, 1.0));
 
       vNormal = normalize(mat3(instanceMatrix) * localNormal);
@@ -59,6 +71,7 @@ export const TreeConeMaterial = shaderMaterial(
     varying vec3 vWorldPos;
 
     uniform sampler2D uTexture;
+    uniform float uAmplitude;
 
     void main() {
       vec4 texColor = texture2D(uTexture, vUv);
@@ -84,7 +97,9 @@ export const TreeConeMaterial = shaderMaterial(
       float diff = max(dot(finalNormal, lightDir), 0.0);
       float fillDiff = max(dot(finalNormal, fillLight), 0.0);
 
-      vec3 ambient = vec3(0.2, 0.25, 0.3); 
+      // Amplitude-driven shading: Drop ambient for more contrast at high strength
+      float amb = mix(0.28, 0.12, clamp(uAmplitude / 1.5, 0.0, 1.0));
+      vec3 ambient = vec3(amb, amb + 0.03, amb + 0.06);
       vec3 calculatedLight = ambient + (vec3(1.0, 0.95, 0.9) * diff * 1.5) + (vec3(0.3, 0.4, 0.5) * fillDiff * 0.8);
 
       vec3 finalColor = texColor.rgb * calculatedLight;
