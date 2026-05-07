@@ -131,7 +131,7 @@ export default function App() {
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: 10, opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-3"
+                  className="absolute right-3 bottom-3"
                   style={{ top: TOOLBAR_H + 12 + 320 + 8 }}
                 >
                   <InspectorPanel />

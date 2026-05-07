@@ -45,7 +45,7 @@ export function InspectorPanel() {
   const upd = (key: keyof ShaderTweaks, val: number) => updateSelectedShaderTweak(key, val)
 
   return (
-    <div className="w-64 bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/60 rounded-2xl shadow-2xl overflow-hidden">
+    <div className="w-64 h-full flex flex-col bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/60 rounded-2xl shadow-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-neutral-700/60">
         <div>
@@ -69,7 +69,7 @@ export function InspectorPanel() {
         </div>
       </div>
 
-      <div className="p-3 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {/* Shader switcher */}
         <div>
           <label className="block text-[10px] text-neutral-500 font-semibold uppercase tracking-wider mb-1.5">Shader</label>
