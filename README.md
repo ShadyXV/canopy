@@ -2,6 +2,8 @@
 
 Canopy is an interactive 2.5D tree asset studio built with React, Three.js, and custom GLSL shaders. It provides a creative environment for composing scenes with tree assets, featuring two distinct modes for different interactions.
 
+<img width="2874" height="2022" alt="Screenshot 2026-05-08 at 10 25 15" src="https://github.com/user-attachments/assets/a453ac96-42a1-452f-b1b9-5529e6dde2e3" />
+
 ## Modes
 
 -   **Studio Mode:** A full-featured editor where you can place, select, and inspect individual tree assets. It includes panels for browsing assets, viewing the scene hierarchy, and adjusting properties of selected objects.
