@@ -2,6 +2,10 @@ import * as THREE from 'three'
 
 type Rgb = [number, number, number]
 
+interface BackgroundRemovalOptions {
+  gentleGrayRemoval?: boolean
+}
+
 export interface ProcessedTreeTexture {
   texture: THREE.Texture
   previewUrl: string
@@ -144,14 +148,14 @@ function splitTwoBackgroundColors(samples: Rgb[]): { colors: Rgb[]; isCheckerboa
   return { colors: isCheckerboard ? [a, b] : [averageColor(samples)], isCheckerboard }
 }
 
-function removeDetectedBackground(canvas: HTMLCanvasElement): void {
+function removeDetectedBackground(canvas: HTMLCanvasElement, options: BackgroundRemovalOptions = {}): void {
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
   const { data, width, height } = imageData
   const samples = sampleBackgroundColors(data, width, height)
   const { colors, isCheckerboard } = splitTwoBackgroundColors(samples)
-  const hardThreshold = isCheckerboard ? 46 : 34
-  const softThreshold = hardThreshold + 18
+  const hardThreshold = isCheckerboard ? 46 : options.gentleGrayRemoval ? 18 : 34
+  const softThreshold = hardThreshold + (options.gentleGrayRemoval && !isCheckerboard ? 10 : 18)
 
   for (let i = 0; i < data.length; i += 4) {
     const color: Rgb = [data[i], data[i + 1], data[i + 2]]
@@ -168,6 +172,12 @@ function removeDetectedBackground(canvas: HTMLCanvasElement): void {
   ctx.putImageData(imageData, 0, 0)
 }
 
+function getBackgroundRemovalOptions(path: string): BackgroundRemovalOptions {
+  return {
+    gentleGrayRemoval: /(?:^|\/)tree_6\.png(?:$|\?)/.test(path),
+  }
+}
+
 export async function loadProcessedTreeTexture(path: string): Promise<ProcessedTreeTexture> {
   const image = await loadImage(path)
   const canvas = document.createElement('canvas')
@@ -176,7 +186,7 @@ export async function loadProcessedTreeTexture(path: string): Promise<ProcessedT
 
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!
   ctx.drawImage(image, 0, 0)
-  removeDetectedBackground(canvas)
+  removeDetectedBackground(canvas, getBackgroundRemovalOptions(path))
 
   return {
     texture: makeCanvasTexture(canvas),
