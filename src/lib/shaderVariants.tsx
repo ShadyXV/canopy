@@ -38,7 +38,7 @@ export const SHADER_VARIANTS: readonly ShaderVariant[] = [
         key: 'heightScale',
         label: 'Height',
         hint: 'Peak height of the dome — 0 = flat disc, 3 = tall spike',
-        min: 0.05, max: 3, step: 0.05,
+        min: 0.05, max: 0.3, step: 0.05,
       },
       {
         key: 'amplitude',
@@ -58,7 +58,7 @@ export const SHADER_VARIANTS: readonly ShaderVariant[] = [
         key: 'heightScale',
         label: 'Height',
         hint: 'How far the canopy rises — scales the entire sphere+ridge surface',
-        min: 0.05, max: 3, step: 0.05,
+        min: 0.05, max: 0.3, step: 0.05,
       },
       {
         key: 'amplitude',
@@ -84,7 +84,7 @@ export const SHADER_VARIANTS: readonly ShaderVariant[] = [
         key: 'heightScale',
         label: 'Height',
         hint: 'How far the canopy rises — scales the entire sphere+fractal surface',
-        min: 0.05, max: 3, step: 0.05,
+        min: 0.05, max: 0.3, step: 0.05,
       },
       {
         key: 'amplitude',
@@ -110,7 +110,7 @@ export const SHADER_VARIANTS: readonly ShaderVariant[] = [
         key: 'heightScale',
         label: 'Height',
         hint: 'Peak height of the tallest waves — higher values create taller, more dramatic crests',
-        min: 0.05, max: 3, step: 0.05,
+        min: 0.05, max: 0.3, step: 0.05,
       },
       {
         key: 'amplitude',
@@ -136,7 +136,7 @@ export const SHADER_VARIANTS: readonly ShaderVariant[] = [
         key: 'heightScale',
         label: 'Height',
         hint: 'Overall extrusion depth — scales the entire multi-scale texture surface',
-        min: 0.05, max: 3, step: 0.05,
+        min: 0.05, max: 0.3, step: 0.05,
       },
       {
         key: 'amplitude',

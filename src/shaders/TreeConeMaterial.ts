@@ -84,6 +84,7 @@ export const TreeConeMaterial = shaderMaterial(
 
     uniform sampler2D uTexture;
     uniform float uAmplitude;
+    uniform float uHeightScale;
 
     void main() {
       vec4 texColor = texture2D(uTexture, vUv);
@@ -105,9 +106,11 @@ export const TreeConeMaterial = shaderMaterial(
       float diff = max(dot(finalNormal, lightDir), 0.0);
       float fillDiff = max(dot(finalNormal, fillLight), 0.0);
 
-      // Amplitude-driven shading: Drop ambient for more contrast at high strength
-      float amb = mix(0.28, 0.12, clamp(uAmplitude / 1.5, 0.0, 1.0));
-      vec3 ambient = vec3(amb, amb + 0.03, amb + 0.06);
+      // Exaggerated shadow based on heightScale (0.05 -> 0.3)
+      float hFactor = clamp((uHeightScale - 0.05) / 0.25, 0.0, 1.0);
+      float amb = mix(0.32, 0.05, hFactor); 
+      
+      vec3 ambient = vec3(amb, amb + 0.02, amb + 0.04);
       vec3 calculatedLight = ambient + (vec3(1.0, 0.95, 0.9) * diff * 1.5) + (vec3(0.3, 0.4, 0.5) * fillDiff * 0.8);
 
       vec3 finalColor = texColor.rgb * calculatedLight;

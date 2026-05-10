@@ -5,6 +5,7 @@ import * as THREE from 'three'
 const makeFrag = (lo: string, hi: string, rimCol: string) => `
   varying vec2 vUv;
   varying vec3 vNormal;
+  uniform float uHeightScale;
   void main() {
     vec3 n    = normalize(vNormal);
     vec3 sun  = normalize(vec3(0.6, -0.3, 1.0));
@@ -12,9 +13,14 @@ const makeFrag = (lo: string, hi: string, rimCol: string) => `
     float d   = max(dot(n, sun), 0.0);
     float f   = max(dot(n, fill), 0.0) * 0.35;
     float rim = pow(1.0 - max(dot(n, vec3(0.0, 0.0, 1.0)), 0.0), 3.0);
+    
+    // Exaggerated shadow based on heightScale (0.05 -> 0.3)
+    float hFactor = clamp((uHeightScale - 0.05) / 0.25, 0.0, 1.0);
+    float ambScale = mix(1.0, 0.25, hFactor);
+
     vec3 col  = mix(vec3(${lo}), vec3(${hi}), vUv.y * 0.5 + d * 0.5);
     col      += vec3(${rimCol}) * rim * 0.35;
-    col      *= 0.18 + d * 1.1 + f;
+    col      *= (0.18 * ambScale) + d * 1.1 + f;
     gl_FragColor = vec4(col, 1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
