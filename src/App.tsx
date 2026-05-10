@@ -22,7 +22,7 @@ export default function App() {
     mode,
     showBackgroundForest,
     windIntensity,
-    windDirection,
+    windRandomness,
     depthFactor,
     forestDensity,
     pendingAsset,
@@ -31,8 +31,8 @@ export default function App() {
   } = useEditorStore()
 
   const environment = useMemo(
-    () => ({ windIntensity, windDirection, depthFactor, forestDensity }),
-    [windIntensity, windDirection, depthFactor, forestDensity]
+    () => ({ windIntensity, windRandomness, depthFactor, forestDensity }),
+    [windIntensity, windRandomness, depthFactor, forestDensity]
   )
   const shaderEnvironment = useMemo(() => toShaderEnvironment(environment), [environment])
 

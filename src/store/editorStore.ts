@@ -45,7 +45,7 @@ interface EditorState extends SceneEnvironment {
   removeAsset: (id: string) => void
   removeSelectedAsset: () => void
   setWindIntensity: (v: number) => void
-  setWindDirection: (v: number) => void
+  setWindRandomness: (v: number) => void
   setDepthFactor: (v: number) => void
   setForestDensity: (v: number) => void
 }
@@ -138,7 +138,7 @@ export const useEditorStore = create<EditorState>((set) => ({
     }),
 
   setWindIntensity: (v) => set({ windIntensity: v }),
-  setWindDirection: (v) => set({ windDirection: v }),
+  setWindRandomness: (v) => set({ windRandomness: v }),
   setDepthFactor: (v) => set({ depthFactor: v }),
   setForestDensity: (v) => set({ forestDensity: v }),
 }))

@@ -23,7 +23,7 @@ interface Props {
   shader: ShaderType
   instances: TreeInstance[]
   windIntensity: number
-  windDirection: [number, number]
+  windRandomness: number
   depthFactor: number
   shaderTweaks?: ShaderTweaks
   selectedInstance?: TreeInstance | null
@@ -68,7 +68,7 @@ export function TreeInstanceMesh({
   shader,
   instances,
   windIntensity,
-  windDirection,
+  windRandomness,
   depthFactor,
   shaderTweaks = DEFAULT_SHADER_TWEAKS,
   selectedInstance = null,
@@ -79,12 +79,12 @@ export function TreeInstanceMesh({
   const texture = useTreeTexture(textureIndex)
 
   const tweaksRef = useRef(shaderTweaks)
-  const windRef = useRef({ intensity: windIntensity, direction: windDirection })
+  const windRef = useRef({ intensity: windIntensity, randomness: windRandomness })
   const depthRef = useRef(depthFactor)
 
   tweaksRef.current = shaderTweaks
   windRef.current.intensity = windIntensity
-  windRef.current.direction = windDirection
+  windRef.current.randomness = windRandomness
   depthRef.current = depthFactor
 
   useEffect(() => {
@@ -107,7 +107,7 @@ export function TreeInstanceMesh({
 
     mat.uTime = state.clock.elapsedTime
     mat.uWindIntensity = windRef.current.intensity
-    mat.uWindDirection = new THREE.Vector2(windRef.current.direction[0], windRef.current.direction[1])
+    mat.uWindRandomness = windRef.current.randomness
     mat.uDepthFactor = depthRef.current
     mat.uHeightScale = tweaksRef.current.heightScale
     mat.uAmplitude = tweaksRef.current.amplitude

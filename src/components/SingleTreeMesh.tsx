@@ -11,7 +11,7 @@ interface Props {
   scale: number
   isSelected: boolean
   windIntensity: number
-  windDirection: [number, number]
+  windRandomness: number
   depthFactor: number
   shaderTweaks: ShaderTweaks
   onClick: (id: string) => void
@@ -19,7 +19,7 @@ interface Props {
 
 export function SingleTreeMesh({
   id, textureIndex, shader, position, rotation, scale,
-  isSelected, windIntensity, windDirection, depthFactor, shaderTweaks, onClick,
+  isSelected, windIntensity, windRandomness, depthFactor, shaderTweaks, onClick,
 }: Props) {
   const instance = useMemo(() => ({ position, rotation, scale }), [position, rotation, scale])
 
@@ -30,7 +30,7 @@ export function SingleTreeMesh({
       instances={[instance]}
       selectedInstance={isSelected ? instance : null}
       windIntensity={windIntensity}
-      windDirection={windDirection}
+      windRandomness={windRandomness}
       depthFactor={depthFactor}
       shaderTweaks={shaderTweaks}
       onClick={() => onClick(id)}

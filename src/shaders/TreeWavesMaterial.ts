@@ -5,7 +5,7 @@ export const TreeWavesMaterial = shaderMaterial(
   {
     uTime: 0,
     uWindIntensity: 0.5,
-    uWindDirection: new THREE.Vector2(1.0, 0.5),
+    uWindRandomness: 0.3,
     uDepthFactor: 1.0,
     uAmplitude: 0.6,
     uFrequency: 1.0,
@@ -19,7 +19,7 @@ export const TreeWavesMaterial = shaderMaterial(
 
     uniform float uTime;
     uniform float uWindIntensity;
-    uniform vec2 uWindDirection;
+    uniform float uWindRandomness;
     uniform float uDepthFactor;
     uniform float uAmplitude;
     uniform float uFrequency;
@@ -52,15 +52,18 @@ export const TreeWavesMaterial = shaderMaterial(
       vec3 pos = position;
       pos.z += height * uDepthFactor * 1.5 * uHeightScale;
 
-      float temporalPhase = uTime * 2.0;
-      float spatialPhase = instanceWorldPos.x * 0.1 + instanceWorldPos.y * 0.1;
-      float swayNoise = sin(spatialPhase + temporalPhase) + cos(spatialPhase * 0.5 + temporalPhase * 1.3);
-
-      vec2 windDir = normalize(uWindDirection);
-      float sway = height * uWindIntensity * (swayNoise * 0.5 + 0.5) * 0.5;
-
-      pos.x += windDir.x * sway;
-      pos.y += windDir.y * sway;
+      float windAngle = 0.785 + sin(uTime * 0.11) * 0.35 + sin(uTime * 0.07) * 0.18;
+      vec2 windDir = vec2(cos(windAngle), sin(windAngle));
+      float windPos = dot(instanceWorldPos.xy, windDir) * 0.28;
+      float randPhase = fract(sin(dot(instanceWorldPos.xy, vec2(127.1, 311.7))) * 43758.5453) * 6.28318;
+      float basePhase = mix(windPos, randPhase, uWindRandomness);
+      float wave1 = sin(uTime * 1.1  + basePhase);
+      float wave2 = sin(uTime * 2.7  + basePhase * 1.3 + 2.1) * 0.30;
+      float wave3 = sin(uTime * 0.45 + basePhase * 0.7) * 0.55;
+      float uvRipple = sin(uTime * 1.9 + windPos + dot(uv - vec2(0.5), windDir) * 3.5) * 0.22;
+      float swayAmount = (wave1 + wave2 + wave3 + uvRipple) * height * uWindIntensity * 0.08;
+      pos.x += windDir.x * swayAmount;
+      pos.y += windDir.y * swayAmount;
 
       float eps = 0.02;
       float nL = fbm(vec2(uv.x - eps, uv.y) * 3.0 * uFrequency + instanceWorldPos.xy * 0.1) * edgeFade * uAmplitude;

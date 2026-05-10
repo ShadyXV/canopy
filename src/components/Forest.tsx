@@ -48,7 +48,7 @@ function ForestAsset({
       shader={asset.forestShader}
       instances={instances}
       windIntensity={shaderEnvironment.windIntensity}
-      windDirection={shaderEnvironment.windDirection}
+      windRandomness={shaderEnvironment.windRandomness}
       depthFactor={shaderEnvironment.depthFactor}
     />
   )

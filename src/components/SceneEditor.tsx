@@ -40,7 +40,7 @@ export function SceneEditor({ environment }: Props) {
           shaderTweaks={asset.shaderTweaks}
           isSelected={asset.id === selectedId}
           windIntensity={environment.windIntensity}
-          windDirection={environment.windDirection}
+          windRandomness={environment.windRandomness}
           depthFactor={environment.depthFactor}
           onClick={selectAsset}
         />

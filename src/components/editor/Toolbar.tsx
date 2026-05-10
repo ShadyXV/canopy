@@ -28,15 +28,15 @@ export function Toolbar() {
     mode, setMode,
     showBackgroundForest, setShowBackgroundForest,
     windIntensity, setWindIntensity,
-    windDirection, setWindDirection,
+    windRandomness, setWindRandomness,
     depthFactor, setDepthFactor,
     forestDensity, setForestDensity,
     placedAssets, pendingAsset,
   } = useEditorStore()
-  const environment = { windIntensity, windDirection, depthFactor, forestDensity }
+  const environment = { windIntensity, windRandomness, depthFactor, forestDensity }
   const setEnvironmentValue = {
     windIntensity: setWindIntensity,
-    windDirection: setWindDirection,
+    windRandomness: setWindRandomness,
     depthFactor: setDepthFactor,
     forestDensity: setForestDensity,
   }

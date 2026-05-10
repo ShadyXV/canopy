@@ -1,13 +1,13 @@
 export interface SceneEnvironment {
   windIntensity: number
-  windDirection: number
+  windRandomness: number
   depthFactor: number
   forestDensity: number
 }
 
 export interface ShaderEnvironment {
   windIntensity: number
-  windDirection: [number, number]
+  windRandomness: number
   depthFactor: number
 }
 
@@ -23,7 +23,7 @@ export interface EnvironmentControl {
 
 export const DEFAULT_SCENE_ENVIRONMENT: SceneEnvironment = {
   windIntensity: 0.5,
-  windDirection: 45,
+  windRandomness: 0.3,
   depthFactor: 2.5,
   forestDensity: 10,
 }
@@ -38,12 +38,12 @@ export const SCENE_ENVIRONMENT_CONTROLS: readonly EnvironmentControl[] = [
     format: (value) => value.toFixed(1),
   },
   {
-    key: 'windDirection',
-    label: 'Direction',
+    key: 'windRandomness',
+    label: 'Turbulence',
     min: 0,
-    max: 360,
-    step: 1,
-    format: (value) => `${value.toFixed(1)}°`,
+    max: 1,
+    step: 0.01,
+    format: (value) => value.toFixed(2),
   },
   {
     key: 'depthFactor',
@@ -64,15 +64,10 @@ export const SCENE_ENVIRONMENT_CONTROLS: readonly EnvironmentControl[] = [
   },
 ] as const
 
-export function windDirectionToVector(directionDegrees: number): [number, number] {
-  const radians = (directionDegrees * Math.PI) / 180
-  return [Math.cos(radians), Math.sin(radians)]
-}
-
 export function toShaderEnvironment(environment: SceneEnvironment): ShaderEnvironment {
   return {
     windIntensity: environment.windIntensity,
-    windDirection: windDirectionToVector(environment.windDirection),
+    windRandomness: environment.windRandomness,
     depthFactor: environment.depthFactor,
   }
 }
