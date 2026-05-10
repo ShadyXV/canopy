@@ -21,9 +21,11 @@ export interface PlacedAsset {
 
 type PendingAsset = Pick<PlacedAsset, 'textureIndex' | 'shader'>
 type AssetUpdates = Partial<Pick<PlacedAsset, 'shader' | 'rotation' | 'scale' | 'position' | 'shaderTweaks'>>
+export type StudioTool = 'select' | 'move'
 
 interface EditorState extends SceneEnvironment {
   mode: 'forest' | 'studio'
+  studioTool: StudioTool
   showBackgroundForest: boolean
   placedAssets: PlacedAsset[]
   selectedId: string | null
@@ -31,6 +33,7 @@ interface EditorState extends SceneEnvironment {
 
   // Actions
   setMode: (mode: 'forest' | 'studio') => void
+  setStudioTool: (tool: StudioTool) => void
   setShowBackgroundForest: (v: boolean) => void
   startPlacement: (asset: PendingAsset) => void
   cancelPlacement: () => void
@@ -55,6 +58,7 @@ function genId() { return `asset-${_nextId++}` }
 
 export const useEditorStore = create<EditorState>((set) => ({
   mode: 'studio',
+  studioTool: 'select',
   showBackgroundForest: false,
   placedAssets: [],
   selectedId: null,
@@ -62,6 +66,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   ...DEFAULT_SCENE_ENVIRONMENT,
 
   setMode: (mode) => set({ mode }),
+  setStudioTool: (studioTool) => set({ studioTool }),
   setShowBackgroundForest: (v) => set({ showBackgroundForest: v }),
 
   startPlacement: (asset) => set({ pendingAsset: asset }),

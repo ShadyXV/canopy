@@ -15,11 +15,14 @@ interface Props {
   depthFactor: number
   shaderTweaks: ShaderTweaks
   onClick: (id: string) => void
+  onPointerDown?: (e: any) => void
+  onPointerMove?: (e: any) => void
+  onPointerUp?: (e: any) => void
 }
 
 export function SingleTreeMesh({
   id, textureIndex, shader, position, rotation, scale,
-  isSelected, windIntensity, windRandomness, depthFactor, shaderTweaks, onClick,
+  isSelected, windIntensity, windRandomness, depthFactor, shaderTweaks, onClick, onPointerDown, onPointerMove, onPointerUp,
 }: Props) {
   const instance = useMemo(() => ({ position, rotation, scale }), [position, rotation, scale])
 
@@ -34,6 +37,9 @@ export function SingleTreeMesh({
       depthFactor={depthFactor}
       shaderTweaks={shaderTweaks}
       onClick={() => onClick(id)}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
     />
   )
 }

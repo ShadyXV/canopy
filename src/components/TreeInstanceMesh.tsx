@@ -28,6 +28,9 @@ interface Props {
   shaderTweaks?: ShaderTweaks
   selectedInstance?: TreeInstance | null
   onClick?: () => void
+  onPointerDown?: (e: any) => void
+  onPointerMove?: (e: any) => void
+  onPointerUp?: (e: any) => void
 }
 
 export function createSeededTreeInstances({
@@ -73,6 +76,9 @@ export function TreeInstanceMesh({
   shaderTweaks = DEFAULT_SHADER_TWEAKS,
   selectedInstance = null,
   onClick,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
 }: Props) {
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const matRef = useRef<any>(null)
@@ -139,6 +145,9 @@ export function TreeInstanceMesh({
         args={[null as any, null as any, instances.length]}
         frustumCulled={false}
         onClick={handleClick}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
       >
         <planeGeometry args={[1, 1, 32, 32]} />
         {renderTreeShaderMaterial({ shader, materialProps: matProps })}
