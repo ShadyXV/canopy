@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { MapControls } from '@react-three/drei'
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { motion, AnimatePresence } from 'motion/react'
 import { useEditorStore } from './store/editorStore'
 import { preloadAllTextures } from './lib/textureCache'
@@ -16,8 +17,19 @@ import { countForestInstances, toShaderEnvironment } from './lib/sceneEnvironmen
 preloadAllTextures()
 
 const TOOLBAR_H = 44 // px, matches toolbar py-2 + content
+const STUDIO_PAN_LIMITS = {
+  minX: -65,
+  maxX: 65,
+  minY: -45,
+  maxY: 45,
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
+}
 
 export default function App() {
+  const controlsRef = useRef<OrbitControlsImpl>(null)
   const {
     mode,
     showBackgroundForest,
@@ -47,6 +59,26 @@ export default function App() {
 
   const isStudio = mode === 'studio'
   const cursorClass = pendingAsset ? 'cursor-crosshair' : 'cursor-default'
+  const clampStudioPan = useCallback(() => {
+    if (!isStudio) return
+
+    const controls = controlsRef.current
+    if (!controls) return
+
+    const { target, object } = controls
+    const nextX = clamp(target.x, STUDIO_PAN_LIMITS.minX, STUDIO_PAN_LIMITS.maxX)
+    const nextY = clamp(target.y, STUDIO_PAN_LIMITS.minY, STUDIO_PAN_LIMITS.maxY)
+    const deltaX = nextX - target.x
+    const deltaY = nextY - target.y
+
+    if (deltaX === 0 && deltaY === 0) return
+
+    target.set(nextX, nextY, target.z)
+    object.position.x += deltaX
+    object.position.y += deltaY
+    object.updateMatrixWorld()
+    controls.update()
+  }, [isStudio])
 
   return (
     <div className={`relative w-full h-screen bg-neutral-950 overflow-hidden font-sans ${cursorClass}`}>
@@ -62,10 +94,13 @@ export default function App() {
           className="block w-full h-full"
         >
           <MapControls
+            ref={controlsRef}
             enableRotate={false}
             makeDefault
             // Disable pan/zoom when user is placing an asset
             enabled={!pendingAsset}
+            screenSpacePanning={isStudio}
+            onChange={clampStudioPan}
           />
 
           {/* Background forest (always rendered in forest mode, toggleable in studio) */}
