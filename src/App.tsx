@@ -15,10 +15,8 @@ import { SceneOutliner } from './components/editor/SceneOutliner'
 import { InspectorPanel } from './components/editor/InspectorPanel'
 import { countForestInstances, toShaderEnvironment } from './lib/sceneEnvironment'
 
-// Kick off texture preloading immediately
-preloadAllTextures()
-
-const TOOLBAR_H = 44 // px, matches toolbar py-2 + content
+// const TOOLBAR_H = 44 // px, matches toolbar py-2 + content
+const TOOLBAR_H = 44
 const STUDIO_PAN_LIMITS = {
   minX: -65,
   maxX: 65,

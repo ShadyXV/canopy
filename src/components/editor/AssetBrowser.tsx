@@ -3,10 +3,13 @@ import { useEditorStore } from '../../store/editorStore'
 import { ShaderPreviewCanvas } from './ShaderPreviewCanvas'
 import { TREE_ASSETS, type TreeAsset } from '../../lib/treeAssetCatalog'
 import { DEFAULT_SHADER_TWEAKS, SHADER_VARIANTS, type ShaderType } from '../../lib/shaderVariants'
+import { useTreePreviewUrl } from '../../lib/textureCache'
 
 function AssetCard({ asset }: { asset: TreeAsset }) {
   const { pendingAsset, startPlacement, togglePlacement } = useEditorStore()
   const [shader, setShader] = useState<ShaderType>(asset.defaultShader)
+  const [isHovered, setIsHovered] = useState(false)
+  const previewUrl = useTreePreviewUrl(asset.id)
 
   const isPending = pendingAsset?.textureIndex === asset.id && pendingAsset?.shader === shader
 
@@ -16,6 +19,8 @@ function AssetCard({ asset }: { asset: TreeAsset }) {
 
   return (
     <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className={`rounded-xl border transition-all duration-150 overflow-hidden ${
         isPending
           ? 'border-emerald-500 shadow-[0_0_14px_rgba(16,185,129,0.3)]'
@@ -25,7 +30,7 @@ function AssetCard({ asset }: { asset: TreeAsset }) {
       {/* Large Texture Preview */}
       <div className="relative bg-neutral-900 border-b border-neutral-700/40 p-2 flex justify-center">
         <img
-          src={asset.texturePath}
+          src={previewUrl ?? asset.texturePath}
           alt={asset.label}
           className="h-32 object-contain"
         />
@@ -48,8 +53,14 @@ function AssetCard({ asset }: { asset: TreeAsset }) {
 
         {/* Shader selection + Tiny 3D Preview */}
         <div className="flex gap-2 items-center">
-          <div className="w-10 h-10 rounded overflow-hidden border border-neutral-700/60 bg-neutral-950 flex-shrink-0">
-            <ShaderPreviewCanvas shader={shader} tweaks={DEFAULT_SHADER_TWEAKS} height={40} interactive={false} />
+          <div className="w-10 h-10 rounded overflow-hidden border border-neutral-700/60 bg-neutral-950 flex-shrink-0 flex items-center justify-center">
+            {isHovered || isPending ? (
+              <ShaderPreviewCanvas shader={shader} tweaks={DEFAULT_SHADER_TWEAKS} height={40} interactive={false} />
+            ) : (
+              <div className="w-full h-full bg-neutral-900 flex items-center justify-center">
+                <div className="w-4 h-4 rounded-full border border-neutral-700/50" />
+              </div>
+            )}
           </div>
           
           <select

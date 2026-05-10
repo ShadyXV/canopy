@@ -87,11 +87,7 @@ export const TreeConeMaterial = shaderMaterial(
 
     void main() {
       vec4 texColor = texture2D(uTexture, vUv);
-      vec4 bgColor = texture2D(uTexture, vec2(0.02, 0.02)); 
-
-      float distToBg = distance(texColor.rgb, bgColor.rgb);
-
-      if (distToBg < 0.08 || texColor.a < 0.1) {
+      if (texColor.a < 0.1) {
         discard;
       }
 
