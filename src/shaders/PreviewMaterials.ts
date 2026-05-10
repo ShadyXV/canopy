@@ -30,17 +30,17 @@ const coneVert = `
     float dist   = distance(uv, vec2(0.5));
     float height = smoothstep(0.5, 0.0, dist);
     vec3 pos     = position;
-    pos.z       += height * uDepthFactor * uHeightScale * uAmplitude;
+    pos.z       += height * uDepthFactor * uHeightScale;
     pos.x       += height * sin(uTime * 1.8) * 0.04;
-    
-    float t = clamp(1.0 - dist * 2.0, 0.0, 1.0); 
+
+    float t = clamp(1.0 - dist * 2.0, 0.0, 1.0);
     float dh_dt = 6.0 * t * (1.0 - t);
     float dh_dr = dh_dt * -2.0;
-    
+
     float dr_dx = (dist > 0.0001) ? (uv.x - 0.5) / dist : 0.0;
     float dr_dy = (dist > 0.0001) ? (uv.y - 0.5) / dist : 0.0;
-    
-    float slope = uDepthFactor * uHeightScale * uAmplitude;
+
+    float slope = uDepthFactor * uHeightScale;
     float nx = -dh_dr * dr_dx * slope;
     float ny = -dh_dr * dr_dy * slope;
 
@@ -82,14 +82,17 @@ const ridgeVert = `
     float ex=smoothstep(0.0,0.15,uv.x)*smoothstep(1.0,0.85,uv.x);
     float ey=smoothstep(0.0,0.15,uv.y)*smoothstep(1.0,0.85,uv.y);
     float edge=ex*ey;
-    float n=fbm(uv*3.0*uFrequency); float height=n*edge*uAmplitude;
+    float dist=distance(uv,vec2(0.5));
+    float sBase=max(0.0,cos(dist*3.14159));
+    float n=fbm(uv*3.0*uFrequency);
+    float height=sBase+n*uAmplitude*edge;
     vec3 pos=position; pos.z+=height*uDepthFactor*1.5*uHeightScale;
     pos.x+=height*sin(uTime*2.0)*0.05;
     float e=0.02;
-    float nL=fbm(vec2(uv.x-e,uv.y)*3.0*uFrequency)*edge*uAmplitude;
-    float nR=fbm(vec2(uv.x+e,uv.y)*3.0*uFrequency)*edge*uAmplitude;
-    float nD=fbm(vec2(uv.x,uv.y-e)*3.0*uFrequency)*edge*uAmplitude;
-    float nU=fbm(vec2(uv.x,uv.y+e)*3.0*uFrequency)*edge*uAmplitude;
+    float nL=max(0.0,cos(distance(vec2(uv.x-e,uv.y),vec2(0.5))*3.14159))+fbm(vec2(uv.x-e,uv.y)*3.0*uFrequency)*uAmplitude*edge;
+    float nR=max(0.0,cos(distance(vec2(uv.x+e,uv.y),vec2(0.5))*3.14159))+fbm(vec2(uv.x+e,uv.y)*3.0*uFrequency)*uAmplitude*edge;
+    float nD=max(0.0,cos(distance(vec2(uv.x,uv.y-e),vec2(0.5))*3.14159))+fbm(vec2(uv.x,uv.y-e)*3.0*uFrequency)*uAmplitude*edge;
+    float nU=max(0.0,cos(distance(vec2(uv.x,uv.y+e),vec2(0.5))*3.14159))+fbm(vec2(uv.x,uv.y+e)*3.0*uFrequency)*uAmplitude*edge;
     vNormal=normalize(vec3((nL-nR)*uDepthFactor*20.0,(nD-nU)*uDepthFactor*20.0,1.0));
     gl_Position=projectionMatrix*modelViewMatrix*vec4(pos,1.0);
   }
@@ -103,6 +106,69 @@ export const RidgePreviewMaterial = shaderMaterial(
 
 // ── Fractal vertex ────────────────────────────────────────────────────────
 const fractalVert = `
+  varying vec2 vUv; varying vec3 vNormal;
+  uniform float uTime; uniform float uDepthFactor; uniform float uHeightScale;
+  uniform float uAmplitude; uniform float uFrequency;
+  ${fbmGlsl}
+  void main() {
+    vUv = uv;
+    float ex=smoothstep(0.0,0.2,uv.x)*smoothstep(1.0,0.8,uv.x);
+    float ey=smoothstep(0.0,0.2,uv.y)*smoothstep(1.0,0.8,uv.y);
+    float edge=ex*ey;
+    float dist=distance(uv,vec2(0.5));
+    float sBase=max(0.0,cos(dist*3.14159));
+    float n=fbm(uv*6.0*uFrequency); float m=fbm(uv*1.5*uFrequency);
+    float height=sBase+(n*0.4+m*0.6)*uAmplitude*edge;
+    vec3 pos=position; pos.z+=height*uDepthFactor*2.0*uHeightScale;
+    pos.x+=height*sin(uTime*2.5)*0.04;
+    float e=0.02;
+    float nL=max(0.0,cos(distance(vec2(uv.x-e,uv.y),vec2(0.5))*3.14159))+(fbm(vec2(uv.x-e,uv.y)*6.0*uFrequency)*0.4+fbm(vec2(uv.x-e,uv.y)*1.5*uFrequency)*0.6)*uAmplitude*edge;
+    float nR=max(0.0,cos(distance(vec2(uv.x+e,uv.y),vec2(0.5))*3.14159))+(fbm(vec2(uv.x+e,uv.y)*6.0*uFrequency)*0.4+fbm(vec2(uv.x+e,uv.y)*1.5*uFrequency)*0.6)*uAmplitude*edge;
+    float nD=max(0.0,cos(distance(vec2(uv.x,uv.y-e),vec2(0.5))*3.14159))+(fbm(vec2(uv.x,uv.y-e)*6.0*uFrequency)*0.4+fbm(vec2(uv.x,uv.y-e)*1.5*uFrequency)*0.6)*uAmplitude*edge;
+    float nU=max(0.0,cos(distance(vec2(uv.x,uv.y+e),vec2(0.5))*3.14159))+(fbm(vec2(uv.x,uv.y+e)*6.0*uFrequency)*0.4+fbm(vec2(uv.x,uv.y+e)*1.5*uFrequency)*0.6)*uAmplitude*edge;
+    vNormal=normalize(vec3((nL-nR)*uDepthFactor*25.0,(nD-nU)*uDepthFactor*25.0,1.0));
+    gl_Position=projectionMatrix*modelViewMatrix*vec4(pos,1.0);
+  }
+`
+
+export const FractalPreviewMaterial = shaderMaterial(
+  { uTime: 0, uDepthFactor: 2.5, uHeightScale: 0.5, uAmplitude: 0.6, uFrequency: 1.0 },
+  fractalVert,
+  makeFrag('0.04,0.06,0.16', '0.12,0.30,0.50', '0.3,0.55,0.9')
+)
+
+// ── Waves vertex (flat-base FBM — original ridge look) ────────────────────
+const wavesVert = `
+  varying vec2 vUv; varying vec3 vNormal;
+  uniform float uTime; uniform float uDepthFactor; uniform float uHeightScale;
+  uniform float uAmplitude; uniform float uFrequency;
+  ${fbmGlsl}
+  void main() {
+    vUv = uv;
+    float ex=smoothstep(0.0,0.15,uv.x)*smoothstep(1.0,0.85,uv.x);
+    float ey=smoothstep(0.0,0.15,uv.y)*smoothstep(1.0,0.85,uv.y);
+    float edge=ex*ey;
+    float n=fbm(uv*3.0*uFrequency); float height=n*edge*uAmplitude;
+    vec3 pos=position; pos.z+=height*uDepthFactor*1.5*uHeightScale;
+    pos.x+=height*sin(uTime*2.0)*0.05;
+    float e=0.02;
+    float nL=fbm(vec2(uv.x-e,uv.y)*3.0*uFrequency)*edge*uAmplitude;
+    float nR=fbm(vec2(uv.x+e,uv.y)*3.0*uFrequency)*edge*uAmplitude;
+    float nD=fbm(vec2(uv.x,uv.y-e)*3.0*uFrequency)*edge*uAmplitude;
+    float nU=fbm(vec2(uv.x,uv.y+e)*3.0*uFrequency)*edge*uAmplitude;
+    vNormal=normalize(vec3((nL-nR)*uDepthFactor*20.0,(nD-nU)*uDepthFactor*20.0,1.0));
+    gl_Position=projectionMatrix*modelViewMatrix*vec4(pos,1.0);
+  }
+`
+
+export const WavesPreviewMaterial = shaderMaterial(
+  { uTime: 0, uDepthFactor: 2.5, uHeightScale: 0.5, uAmplitude: 0.6, uFrequency: 1.0 },
+  wavesVert,
+  makeFrag('0.04,0.14,0.04', '0.20,0.55,0.12', '0.5,0.9,0.4')
+)
+
+// ── Dense vertex (flat-base dual-FBM — original fractal look) ─────────────
+const denseVert = `
   varying vec2 vUv; varying vec3 vNormal;
   uniform float uTime; uniform float uDepthFactor; uniform float uHeightScale;
   uniform float uAmplitude; uniform float uFrequency;
@@ -126,8 +192,8 @@ const fractalVert = `
   }
 `
 
-export const FractalPreviewMaterial = shaderMaterial(
+export const DensePreviewMaterial = shaderMaterial(
   { uTime: 0, uDepthFactor: 2.5, uHeightScale: 0.5, uAmplitude: 0.6, uFrequency: 1.0 },
-  fractalVert,
-  makeFrag('0.04,0.06,0.16', '0.12,0.30,0.50', '0.3,0.55,0.9')
+  denseVert,
+  makeFrag('0.02,0.10,0.14', '0.08,0.35,0.45', '0.2,0.7,0.8')
 )

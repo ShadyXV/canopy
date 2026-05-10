@@ -4,11 +4,13 @@ import * as THREE from 'three'
 import { TreeConeMaterial } from '../shaders/TreeConeMaterial'
 import { TreeRidgeMaterial } from '../shaders/TreeRidgeMaterial'
 import { TreeFractalMaterial } from '../shaders/TreeFractalMaterial'
+import { TreeWavesMaterial } from '../shaders/TreeWavesMaterial'
+import { TreeDenseMaterial } from '../shaders/TreeDenseMaterial'
 import { useTreeTexture } from '../lib/textureCache'
 import type { ShaderTweaks } from '../store/editorStore'
 import { DEFAULT_SHADER_TWEAKS, renderTreeShaderMaterial, type ShaderType } from '../lib/shaderVariants'
 
-extend({ TreeConeMaterial, TreeRidgeMaterial, TreeFractalMaterial })
+extend({ TreeConeMaterial, TreeRidgeMaterial, TreeFractalMaterial, TreeWavesMaterial, TreeDenseMaterial })
 
 export interface TreeInstance {
   position: [number, number]

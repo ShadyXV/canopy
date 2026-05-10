@@ -1,7 +1,7 @@
 import { shaderMaterial } from '@react-three/drei'
 import * as THREE from 'three'
 
-export const TreeFractalMaterial = shaderMaterial(
+export const TreeDenseMaterial = shaderMaterial(
   {
     uTime: 0,
     uWindIntensity: 0.5,
@@ -46,14 +46,9 @@ export const TreeFractalMaterial = shaderMaterial(
 
       vec4 instanceWorldPos = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
 
-      // Cosine dome: flat top, rounds down to zero at radius 0.5 — clearly different from cone
-      float dist = distance(uv, vec2(0.5));
-      float sphereBase = max(0.0, cos(dist * 3.14159));
       float n = fbm(uv * 6.0 * uFrequency + instanceWorldPos.xy * 0.2);
       float macro = fbm(uv * 1.5 * uFrequency - instanceWorldPos.xy * 0.1);
-      float noiseDetail = n * 0.4 + macro * 0.6;
-      // Sphere base drives silhouette; fractal detail sits on top (edge-faded separately)
-      float height = sphereBase + noiseDetail * uAmplitude * edgeFade;
+      float height = (n * 0.4 + macro * 0.6) * edgeFade * uAmplitude;
 
       vec3 pos = position;
       pos.z += height * uDepthFactor * 2.0 * uHeightScale;
@@ -68,16 +63,15 @@ export const TreeFractalMaterial = shaderMaterial(
       pos.x += windDir.x * sway;
       pos.y += windDir.y * sway;
 
-      // Normals: evaluate full height function at each offset (cosine sphere + fractal noise)
       float eps = 0.02;
-      float nL_n = max(0.0, cos(distance(vec2(uv.x - eps, uv.y), vec2(0.5)) * 3.14159)) + (fbm(vec2(uv.x - eps, uv.y) * 6.0 * uFrequency + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x - eps, uv.y) * 1.5 * uFrequency - instanceWorldPos.xy * 0.1) * 0.6) * uAmplitude * edgeFade;
-      float nR_n = max(0.0, cos(distance(vec2(uv.x + eps, uv.y), vec2(0.5)) * 3.14159)) + (fbm(vec2(uv.x + eps, uv.y) * 6.0 * uFrequency + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x + eps, uv.y) * 1.5 * uFrequency - instanceWorldPos.xy * 0.1) * 0.6) * uAmplitude * edgeFade;
-      float nD_n = max(0.0, cos(distance(vec2(uv.x, uv.y - eps), vec2(0.5)) * 3.14159)) + (fbm(vec2(uv.x, uv.y - eps) * 6.0 * uFrequency + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x, uv.y - eps) * 1.5 * uFrequency - instanceWorldPos.xy * 0.1) * 0.6) * uAmplitude * edgeFade;
-      float nU_n = max(0.0, cos(distance(vec2(uv.x, uv.y + eps), vec2(0.5)) * 3.14159)) + (fbm(vec2(uv.x, uv.y + eps) * 6.0 * uFrequency + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x, uv.y + eps) * 1.5 * uFrequency - instanceWorldPos.xy * 0.1) * 0.6) * uAmplitude * edgeFade;
+      float nL_n = (fbm(vec2(uv.x - eps, uv.y) * 6.0 * uFrequency + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x - eps, uv.y) * 1.5 * uFrequency - instanceWorldPos.xy * 0.1) * 0.6) * uAmplitude;
+      float nR_n = (fbm(vec2(uv.x + eps, uv.y) * 6.0 * uFrequency + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x + eps, uv.y) * 1.5 * uFrequency - instanceWorldPos.xy * 0.1) * 0.6) * uAmplitude;
+      float nD_n = (fbm(vec2(uv.x, uv.y - eps) * 6.0 * uFrequency + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x, uv.y - eps) * 1.5 * uFrequency - instanceWorldPos.xy * 0.1) * 0.6) * uAmplitude;
+      float nU_n = (fbm(vec2(uv.x, uv.y + eps) * 6.0 * uFrequency + instanceWorldPos.xy * 0.2) * 0.4 + fbm(vec2(uv.x, uv.y + eps) * 1.5 * uFrequency - instanceWorldPos.xy * 0.1) * 0.6) * uAmplitude;
 
       float nx = (nL_n - nR_n) * uDepthFactor * 25.0;
       float ny = (nD_n - nU_n) * uDepthFactor * 25.0;
-      
+
       vec3 localNormal = normalize(vec3(nx, ny, 1.0));
       vNormal = normalize(mat3(instanceMatrix) * localNormal);
 
@@ -96,22 +90,16 @@ export const TreeFractalMaterial = shaderMaterial(
 
     void main() {
       vec4 texColor = texture2D(uTexture, vUv);
-      vec4 bgColor = texture2D(uTexture, vec2(0.02, 0.02)); 
+      vec4 bgColor = texture2D(uTexture, vec2(0.02, 0.02));
 
       float distToBg = distance(texColor.rgb, bgColor.rgb);
-
-      if (distToBg < 0.08 || texColor.a < 0.1) {
-        discard;
-      }
+      if (distToBg < 0.08 || texColor.a < 0.1) discard;
 
       float brightness = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
-
       float dx = dFdx(brightness);
       float dy = dFdy(brightness);
       vec3 bumpNormal = normalize(vec3(-dx * 5.0, -dy * 5.0, 1.0));
 
-      // Amplitude-driven shading: geometry normals dominate at high amplitude,
-      // texture bump fills in at low amplitude. Ambient drops for shadow contrast.
       float bumpWeight = mix(0.6, 0.05, clamp(uAmplitude / 1.5, 0.0, 1.0));
       vec3 finalNormal = normalize(vNormal + bumpNormal * bumpWeight);
 
@@ -129,7 +117,6 @@ export const TreeFractalMaterial = shaderMaterial(
         + vec3(0.3, 0.4, 0.5) * fillDiff * 0.7;
 
       vec3 finalColor = texColor.rgb * calculatedLight;
-
       gl_FragColor = vec4(finalColor, texColor.a);
 
       #include <tonemapping_fragment>

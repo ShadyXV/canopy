@@ -3,18 +3,18 @@ import { Trash2, X } from 'lucide-react'
 import { useEditorStore, ShaderTweaks } from '../../store/editorStore'
 import { ShaderPreviewCanvas } from './ShaderPreviewCanvas'
 import { getTreeAsset } from '../../lib/treeAssetCatalog'
-import { SHADER_VARIANTS, shaderSupportsTweak } from '../../lib/shaderVariants'
+import { SHADER_VARIANTS, getShaderVariant } from '../../lib/shaderVariants'
 
 function Row({
-  label, value, min, max, step, format = (v: number) => v.toFixed(2),
+  label, hint, value, min, max, step, format = (v: number) => v.toFixed(2),
   onChange,
 }: {
-  label: string; value: number; min: number; max: number; step: number
+  label: string; hint?: string; value: number; min: number; max: number; step: number
   format?: (v: number) => string
   onChange: (v: number) => void
 }) {
   return (
-    <div>
+    <div title={hint}>
       <label className="flex justify-between text-[10px] text-neutral-500 font-semibold uppercase tracking-wider mb-1">
         <span>{label}</span>
         <span className="text-neutral-400 font-mono">{format(value)}</span>
@@ -43,6 +43,7 @@ export function InspectorPanel() {
 
   const tw = asset.shaderTweaks
   const upd = (key: keyof ShaderTweaks, val: number) => updateSelectedShaderTweak(key, val)
+  const variant = getShaderVariant(asset.shader)
 
   return (
     <div className="w-64 h-full flex flex-col bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/60 rounded-2xl shadow-2xl overflow-hidden">
@@ -73,12 +74,12 @@ export function InspectorPanel() {
         {/* Shader switcher */}
         <div>
           <label className="block text-[10px] text-neutral-500 font-semibold uppercase tracking-wider mb-1.5">Shader</label>
-          <div className="flex gap-1">
+          <div className="grid grid-cols-3 gap-1">
             {SHADER_VARIANTS.map((variant) => (
               <button
                 key={variant.id}
                 onClick={() => updateSelectedAsset({ shader: variant.id })}
-                className={`flex-1 text-[10px] font-semibold py-1.5 rounded-lg border transition-all ${
+                className={`text-[10px] font-semibold py-1.5 rounded-lg border transition-all ${
                   asset.shader === variant.id
                     ? variant.inspectorActiveClass
                     : 'border-neutral-700 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800'
@@ -106,28 +107,16 @@ export function InspectorPanel() {
         <div className="space-y-3 rounded-xl bg-neutral-800/40 border border-neutral-700/40 p-2.5">
           <p className="text-[9px] font-bold tracking-widest text-neutral-600 uppercase">Shader Tweaks</p>
 
-          <Row
-            label="Height"
-            value={tw.heightScale}
-            min={0.05} max={3} step={0.05}
-            onChange={(v) => upd('heightScale', v)}
-          />
-
-          <Row
-            label="Strength / Waviness"
-            value={tw.amplitude}
-            min={0} max={2} step={0.05}
-            onChange={(v) => upd('amplitude', v)}
-          />
-
-          {shaderSupportsTweak(asset.shader, 'frequency') && (
+          {variant.tweakConfig.map(({ key, label, hint, min, max, step }) => (
             <Row
-              label="Frequency"
-              value={tw.frequency}
-              min={0.25} max={4} step={0.05}
-              onChange={(v) => upd('frequency', v)}
+              key={key}
+              label={label}
+              hint={hint}
+              value={tw[key]}
+              min={min} max={max} step={step}
+              onChange={(v) => upd(key, v)}
             />
-          )}
+          ))}
         </div>
 
         {/* ── Transform ─────────────────────────────────── */}

@@ -48,12 +48,14 @@ export const TreeRidgeMaterial = shaderMaterial(
 
       vec4 instanceWorldPos = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
 
-      // Evaluate height using purely noise (no base dome)
+      // Cosine dome: flat top, rounds down to zero at radius 0.5 — clearly different from cone
+      float dist = distance(uv, vec2(0.5));
+      float sphereBase = max(0.0, cos(dist * 3.14159));
       float n = fbm(uv * 3.0 * uFrequency + instanceWorldPos.xy * 0.1);
-      float height = n * edgeFade * uAmplitude;
+      // Sphere base drives silhouette; noise sits on top (edge-faded separately)
+      float height = sphereBase + n * uAmplitude * edgeFade;
 
       vec3 pos = position;
-      // Exaggerate depth for the terrain to make it peaky
       pos.z += height * uDepthFactor * 1.5 * uHeightScale;
 
       float temporalPhase = uTime * 2.0;
@@ -66,12 +68,12 @@ export const TreeRidgeMaterial = shaderMaterial(
       pos.x += windDir.x * sway;
       pos.y += windDir.y * sway;
 
-      // Estimate normal from the fbm terrain to get realistic lighting, completely abandoning the cone shape.
+      // Normals: evaluate full height function at each offset (cosine sphere + noise)
       float eps = 0.02;
-      float nL = fbm(vec2(uv.x - eps, uv.y) * 3.0 * uFrequency + instanceWorldPos.xy * 0.1) * edgeFade * uAmplitude;
-      float nR = fbm(vec2(uv.x + eps, uv.y) * 3.0 * uFrequency + instanceWorldPos.xy * 0.1) * edgeFade * uAmplitude;
-      float nD = fbm(vec2(uv.x, uv.y - eps) * 3.0 * uFrequency + instanceWorldPos.xy * 0.1) * edgeFade * uAmplitude;
-      float nU = fbm(vec2(uv.x, uv.y + eps) * 3.0 * uFrequency + instanceWorldPos.xy * 0.1) * edgeFade * uAmplitude;
+      float nL = max(0.0, cos(distance(vec2(uv.x - eps, uv.y), vec2(0.5)) * 3.14159)) + fbm(vec2(uv.x - eps, uv.y) * 3.0 * uFrequency + instanceWorldPos.xy * 0.1) * uAmplitude * edgeFade;
+      float nR = max(0.0, cos(distance(vec2(uv.x + eps, uv.y), vec2(0.5)) * 3.14159)) + fbm(vec2(uv.x + eps, uv.y) * 3.0 * uFrequency + instanceWorldPos.xy * 0.1) * uAmplitude * edgeFade;
+      float nD = max(0.0, cos(distance(vec2(uv.x, uv.y - eps), vec2(0.5)) * 3.14159)) + fbm(vec2(uv.x, uv.y - eps) * 3.0 * uFrequency + instanceWorldPos.xy * 0.1) * uAmplitude * edgeFade;
+      float nU = max(0.0, cos(distance(vec2(uv.x, uv.y + eps), vec2(0.5)) * 3.14159)) + fbm(vec2(uv.x, uv.y + eps) * 3.0 * uFrequency + instanceWorldPos.xy * 0.1) * uAmplitude * edgeFade;
 
       float nx = (nL - nR) * uDepthFactor * 20.0;
       float ny = (nD - nU) * uDepthFactor * 20.0;

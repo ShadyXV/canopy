@@ -30,7 +30,7 @@ export const TreeConeMaterial = shaderMaterial(
       float height = smoothstep(0.5, 0.0, dist);
 
       vec3 pos = position;
-      pos.z += height * uDepthFactor * uHeightScale * uAmplitude;
+      pos.z += height * uDepthFactor * uHeightScale;
 
       vec4 instanceWorldPos = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
 
@@ -52,7 +52,7 @@ export const TreeConeMaterial = shaderMaterial(
       float dr_dx = (dist > 0.0001) ? (uv.x - 0.5) / dist : 0.0;
       float dr_dy = (dist > 0.0001) ? (uv.y - 0.5) / dist : 0.0;
       
-      float slope = uDepthFactor * uHeightScale * uAmplitude;
+      float slope = uDepthFactor * uHeightScale;
       float nx = -dh_dr * dr_dx * slope;
       float ny = -dh_dr * dr_dy * slope;
 

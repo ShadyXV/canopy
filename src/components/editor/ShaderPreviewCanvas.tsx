@@ -1,17 +1,19 @@
 import React, { useRef } from 'react'
 import { Canvas, useFrame, extend } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
-import { ConePreviewMaterial, RidgePreviewMaterial, FractalPreviewMaterial } from '../../shaders/PreviewMaterials'
+import { ConePreviewMaterial, RidgePreviewMaterial, FractalPreviewMaterial, WavesPreviewMaterial, DensePreviewMaterial } from '../../shaders/PreviewMaterials'
 import type { ShaderTweaks } from '../../store/editorStore'
 import { DEFAULT_SHADER_TWEAKS, renderPreviewShaderMaterial, type ShaderType } from '../../lib/shaderVariants'
 
-extend({ ConePreviewMaterial, RidgePreviewMaterial, FractalPreviewMaterial })
+extend({ ConePreviewMaterial, RidgePreviewMaterial, FractalPreviewMaterial, WavesPreviewMaterial, DensePreviewMaterial })
 
 declare module '@react-three/fiber' {
   interface ThreeElements {
     conePreviewMaterial: any
     ridgePreviewMaterial: any
     fractalPreviewMaterial: any
+    wavesPreviewMaterial: any
+    densePreviewMaterial: any
   }
 }
 
