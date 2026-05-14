@@ -9,6 +9,7 @@ import { useEditorStore } from './store/editorStore'
 import { preloadAllTextures } from './lib/textureCache'
 import { Forest } from './components/Forest'
 import { SceneEditor } from './components/SceneEditor'
+import { ParkScene } from './components/ParkScene'
 import { Toolbar } from './components/editor/Toolbar'
 import { AssetBrowser } from './components/editor/AssetBrowser'
 import { SceneOutliner } from './components/editor/SceneOutliner'
@@ -46,6 +47,7 @@ export default function App() {
     pendingAsset,
     cancelPlacement,
     selectedId,
+    parkPlacedAssets,
   } = useEditorStore()
 
   const environment = useMemo(
@@ -64,6 +66,7 @@ export default function App() {
   }, [pendingAsset, cancelPlacement])
 
   const isStudio = mode === 'studio'
+  const isPark = mode === 'park'
   const isMoveToolActive = isStudio && studioTool === 'move'
   const isStudioRotateMode = isStudio && isSpaceHeld && !pendingAsset && !isMoveToolActive
   const cursorClass = pendingAsset ? 'cursor-crosshair' : isStudioRotateMode ? 'cursor-grab' : 'cursor-default'
@@ -146,90 +149,97 @@ export default function App() {
       {/* ── Toolbar ── */}
       <Toolbar />
 
-      {/* ── 3D Canvas (inset below toolbar) ── */}
-      <div className="absolute inset-0" style={{ top: TOOLBAR_H }}>
-        <Canvas
-          orthographic
-          camera={{ position: [0, 0, 200], zoom: 15, up: [0, 1, 0] }}
-          className="block w-full h-full"
-        >
-          <MapControls
-            ref={controlsRef}
-            enableRotate={isStudioRotateMode}
-            enablePan={!isStudioRotateMode}
-            makeDefault
-            // Disable camera drag while placing assets or moving selected assets.
-            enabled={!pendingAsset && !isMoveToolActive}
-            mouseButtons={studioMouseButtons}
-            screenSpacePanning={isStudio}
-            onChange={clampStudioPan}
-          />
+      {/* ── Park mode: full 3D terrain canvas ── */}
+      {isPark && <ParkScene />}
 
-          {/* Background forest (always rendered in forest mode, toggleable in studio) */}
-          <Forest
-            environment={environment}
-            visible={mode === 'forest' || showBackgroundForest}
-          />
-
-          {/* Studio editor: placed assets + click plane */}
-          {isStudio && (
-            <SceneEditor
-              environment={shaderEnvironment}
+      {/* ── Forest / Studio canvas (inset below toolbar) ── */}
+      {!isPark && (
+        <div className="absolute inset-0" style={{ top: TOOLBAR_H }}>
+          <Canvas
+            orthographic
+            camera={{ position: [0, 0, 200], zoom: 15, up: [0, 1, 0] }}
+            className="block w-full h-full"
+          >
+            <MapControls
+              ref={controlsRef}
+              enableRotate={isStudioRotateMode}
+              enablePan={!isStudioRotateMode}
+              makeDefault
+              // Disable camera drag while placing assets or moving selected assets.
+              enabled={!pendingAsset && !isMoveToolActive}
+              mouseButtons={studioMouseButtons}
+              screenSpacePanning={isStudio}
+              onChange={clampStudioPan}
             />
-          )}
 
-          {/* Ambient + directional lights for studio mode (Forest provides its own) */}
-          {isStudio && !showBackgroundForest && (
-            <>
-              <ambientLight intensity={0.4} />
-              <directionalLight position={[100, -50, 100]} intensity={1.5} />
-              <directionalLight position={[-100, 50, 50]} intensity={0.5} />
-            </>
-          )}
-        </Canvas>
-      </div>
+            {/* Background forest (always rendered in forest mode, toggleable in studio) */}
+            <Forest
+              environment={environment}
+              visible={mode === 'forest' || showBackgroundForest}
+            />
 
-      {/* ── Studio UI Panels ── */}
+            {/* Studio editor: placed assets + click plane */}
+            {isStudio && (
+              <SceneEditor
+                environment={shaderEnvironment}
+              />
+            )}
+
+            {/* Ambient + directional lights for studio mode (Forest provides its own) */}
+            {isStudio && !showBackgroundForest && (
+              <>
+                <ambientLight intensity={0.4} />
+                <directionalLight position={[100, -50, 100]} intensity={1.5} />
+                <directionalLight position={[-100, 50, 50]} intensity={0.5} />
+              </>
+            )}
+          </Canvas>
+        </div>
+      )}
+
+      {/* ── Studio / Park UI Panels ── */}
       <AnimatePresence>
-        {isStudio && (
+        {(isStudio || isPark) && (
           <>
-            {/* Studio tools — left rail */}
-            <motion.div
-              key="studio-tools"
-              initial={{ x: -12, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -12, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="absolute left-3 bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/60 rounded-xl shadow-2xl overflow-hidden p-1.5 flex flex-col gap-1"
-              style={{ top: TOOLBAR_H + 12, width: 44 }}
-            >
-              {[
-                { id: 'select' as const, label: 'Select', icon: MousePointer2 },
-                { id: 'move' as const, label: 'Move', icon: Move },
-              ].map((tool) => {
-                const Icon = tool.icon
-                const active = studioTool === tool.id
-                return (
-                  <button
-                    key={tool.id}
-                    type="button"
-                    title={tool.label}
-                    aria-label={tool.label}
-                    aria-pressed={active}
-                    onClick={() => setStudioTool(tool.id)}
-                    className={`h-8 w-8 grid place-items-center rounded-lg border transition-colors ${
-                      active
-                        ? 'bg-emerald-500/20 border-emerald-400/70 text-emerald-200'
-                        : 'bg-neutral-950/60 border-neutral-700/60 text-neutral-400 hover:text-neutral-100 hover:border-neutral-500'
-                    }`}
-                  >
-                    <Icon size={16} strokeWidth={2.2} />
-                  </button>
-                )
-              })}
-            </motion.div>
+            {/* Studio tools left rail — studio only */}
+            {isStudio && (
+              <motion.div
+                key="studio-tools"
+                initial={{ x: -12, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -12, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute left-3 bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/60 rounded-xl shadow-2xl overflow-hidden p-1.5 flex flex-col gap-1"
+                style={{ top: TOOLBAR_H + 12, width: 44 }}
+              >
+                {[
+                  { id: 'select' as const, label: 'Select', icon: MousePointer2 },
+                  { id: 'move' as const, label: 'Move', icon: Move },
+                ].map((tool) => {
+                  const Icon = tool.icon
+                  const active = studioTool === tool.id
+                  return (
+                    <button
+                      key={tool.id}
+                      type="button"
+                      title={tool.label}
+                      aria-label={tool.label}
+                      aria-pressed={active}
+                      onClick={() => setStudioTool(tool.id)}
+                      className={`h-8 w-8 grid place-items-center rounded-lg border transition-colors ${
+                        active
+                          ? 'bg-emerald-500/20 border-emerald-400/70 text-emerald-200'
+                          : 'bg-neutral-950/60 border-neutral-700/60 text-neutral-400 hover:text-neutral-100 hover:border-neutral-500'
+                      }`}
+                    >
+                      <Icon size={16} strokeWidth={2.2} />
+                    </button>
+                  )
+                })}
+              </motion.div>
+            )}
 
-            {/* Asset Browser — left */}
+            {/* Asset Browser — left (both studio and park) */}
             <motion.div
               key="asset-browser"
               initial={{ x: -20, opacity: 0 }}
@@ -237,51 +247,57 @@ export default function App() {
               exit={{ x: -20, opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="absolute bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/60 rounded-2xl shadow-2xl overflow-hidden"
-              style={{ top: TOOLBAR_H + 12, bottom: 12, left: 64, width: 200 }}
+              style={{ top: TOOLBAR_H + 12, bottom: 12, left: isStudio ? 64 : 12, width: 200 }}
             >
               <AssetBrowser />
             </motion.div>
 
-            {/* Scene Outliner — right */}
-            <motion.div
-              key="scene-outliner"
-              initial={{ x: 20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 20, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="absolute right-3 bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/60 rounded-2xl shadow-2xl overflow-hidden"
-              style={{ top: TOOLBAR_H + 12, height: 320, width: 200 }}
-            >
-              <SceneOutliner />
-            </motion.div>
+            {/* Scene Outliner — right (studio only) */}
+            {isStudio && (
+              <motion.div
+                key="scene-outliner"
+                initial={{ x: 20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 20, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute right-3 bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/60 rounded-2xl shadow-2xl overflow-hidden"
+                style={{ top: TOOLBAR_H + 12, height: 320, width: 200 }}
+              >
+                <SceneOutliner />
+              </motion.div>
+            )}
 
-            {/* Inspector — below outliner when asset selected */}
-            <AnimatePresence>
-              {selectedId && (
-                <motion.div
-                  key="inspector"
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: 10, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-3 bottom-3"
-                  style={{ top: TOOLBAR_H + 12 + 320 + 8 }}
-                >
-                  <InspectorPanel />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Inspector — below outliner when asset selected (studio only) */}
+            {isStudio && (
+              <AnimatePresence>
+                {selectedId && (
+                  <motion.div
+                    key="inspector"
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 10, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-3 bottom-3"
+                    style={{ top: TOOLBAR_H + 12 + 320 + 8 }}
+                  >
+                    <InspectorPanel />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
           </>
         )}
       </AnimatePresence>
 
       {/* ── HUD — bottom left ── */}
-      <div className="absolute bottom-4 left-4 pointer-events-none" style={{ left: isStudio ? 280 : 16 }}>
+      <div className="absolute bottom-4 pointer-events-none" style={{ left: (isStudio || isPark) ? 280 : 16 }}>
         <h1 className="text-2xl font-bold tracking-tighter text-white drop-shadow-md">
-          CANOPY // <span className="text-emerald-500">{isStudio ? 'STUDIO' : 'FOREST'}</span>
+          CANOPY // <span className="text-emerald-500">{isPark ? 'PARK' : isStudio ? 'STUDIO' : 'FOREST'}</span>
         </h1>
         <p className="text-xs font-mono text-neutral-500 mt-0.5">
-          {isStudio
+          {isPark
+            ? `${parkPlacedAssets.length} instances · 3D Terrain`
+            : isStudio
             ? `${useEditorStore.getState().placedAssets.length} instances · 2.5D GLSL`
             : `${countForestInstances(environment)} instances · 2.5D Volumetric Mesh`}
         </p>
