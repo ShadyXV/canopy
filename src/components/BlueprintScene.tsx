@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { parkBoundary, parkRoutes } from '../data/parkData'
 import CinematicMap from './CinematicMap'
+import { useEditorStore } from '../store/editorStore'
+import { toShaderEnvironment } from '../lib/sceneEnvironment'
 
 const TOOLBAR_H = 44
 
@@ -8,6 +10,13 @@ export function BlueprintScene() {
   const [tiles, setTiles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const { windIntensity, windRandomness, depthFactor, forestDensity } = useEditorStore()
+  const environment = useMemo(
+    () => ({ windIntensity, windRandomness, depthFactor, forestDensity }),
+    [windIntensity, windRandomness, depthFactor, forestDensity]
+  )
+  const shaderEnvironment = useMemo(() => toShaderEnvironment(environment), [environment])
 
   useEffect(() => {
     let alive = true
@@ -61,6 +70,7 @@ export function BlueprintScene() {
           tiles={tiles}
           parkBoundary={parkBoundary}
           routes={parkRoutes}
+          environment={shaderEnvironment}
         />
       )}
     </div>

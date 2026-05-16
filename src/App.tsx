@@ -68,7 +68,8 @@ export default function App() {
 
   const isStudio = mode === 'studio'
   const isPark = mode === 'park'
-  const isMoveToolActive = isStudio && studioTool === 'move'
+  const isBlueprint = mode === 'blueprint'
+  const isMoveToolActive = (isStudio || isBlueprint) && studioTool === 'move'
   const isStudioRotateMode = isStudio && isSpaceHeld && !pendingAsset && !isMoveToolActive
   const cursorClass = pendingAsset ? 'cursor-crosshair' : isStudioRotateMode ? 'cursor-grab' : 'cursor-default'
   const studioMouseButtons = useMemo(
@@ -203,10 +204,10 @@ export default function App() {
 
       {/* ── Studio / Park UI Panels ── */}
       <AnimatePresence>
-        {(isStudio || isPark) && (
+        {(isStudio || isPark || isBlueprint) && (
           <>
             {/* Studio tools left rail — studio only */}
-            {isStudio && (
+            {(isStudio || isBlueprint) && (
               <motion.div
                 key="studio-tools"
                 initial={{ x: -12, opacity: 0 }}
@@ -251,13 +252,13 @@ export default function App() {
               exit={{ x: -20, opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="absolute bg-neutral-900/95 backdrop-blur-xl border border-neutral-700/60 rounded-2xl shadow-2xl overflow-hidden"
-              style={{ top: TOOLBAR_H + 12, bottom: 12, left: isStudio ? 64 : 12, width: 200 }}
+              style={{ top: TOOLBAR_H + 12, bottom: 12, left: (isStudio || isBlueprint) ? 64 : 12, width: 200 }}
             >
               <AssetBrowser />
             </motion.div>
 
             {/* Scene Outliner — right (studio only) */}
-            {isStudio && (
+            {(isStudio || isBlueprint) && (
               <motion.div
                 key="scene-outliner"
                 initial={{ x: 20, opacity: 0 }}
@@ -272,7 +273,7 @@ export default function App() {
             )}
 
             {/* Inspector — below outliner when asset selected (studio only) */}
-            {isStudio && (
+            {(isStudio || isBlueprint) && (
               <AnimatePresence>
                 {selectedId && (
                   <motion.div
@@ -294,13 +295,15 @@ export default function App() {
       </AnimatePresence>
 
       {/* ── HUD — bottom left ── */}
-      <div className="absolute bottom-4 pointer-events-none" style={{ left: (isStudio || isPark) ? 280 : 16 }}>
+      <div className="absolute bottom-4 pointer-events-none" style={{ left: (isStudio || isPark || isBlueprint) ? 280 : 16 }}>
         <h1 className="text-2xl font-bold tracking-tighter text-white drop-shadow-md">
-          CANOPY // <span className="text-emerald-500">{isPark ? 'PARK' : isStudio ? 'STUDIO' : 'FOREST'}</span>
+          CANOPY // <span className="text-emerald-500">{isPark ? 'PARK' : isBlueprint ? 'BLUEPRINT' : isStudio ? 'STUDIO' : 'FOREST'}</span>
         </h1>
         <p className="text-xs font-mono text-neutral-500 mt-0.5">
           {isPark
             ? `${parkPlacedAssets.length} instances · 3D Terrain`
+            : isBlueprint
+            ? `${useEditorStore.getState().placedAssets.length} instances · 2D Cinematic Map`
             : isStudio
             ? `${useEditorStore.getState().placedAssets.length} instances · 2.5D GLSL`
             : `${countForestInstances(environment)} instances · 2.5D Volumetric Mesh`}

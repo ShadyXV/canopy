@@ -112,7 +112,7 @@ export const useEditorStore = create<EditorState>((set) => ({
             shader: state.pendingAsset.shader,
             position,
             rotation: 0,
-            scale: 8,
+            scale: state.mode === 'blueprint' ? 20 : 8,
             shaderTweaks: { ...DEFAULT_SHADER_TWEAKS },
           },
         ],

@@ -2,6 +2,8 @@ import React, { useMemo, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { MapControls } from '@react-three/drei';
 import * as THREE from 'three';
+import { SceneEditor } from './SceneEditor';
+import type { ShaderEnvironment } from '../lib/sceneEnvironment';
 
 const WORLD_SCALE = 1.0;
 const DENSE_RES = 160;
@@ -224,9 +226,10 @@ interface Props {
   tiles: any[];
   parkBoundary: [number, number][];
   routes: { coordinates: [number, number][] }[];
+  environment: ShaderEnvironment;
 }
 
-export default function CinematicMap({ tiles, parkBoundary, routes }: Props) {
+export default function CinematicMap({ tiles, parkBoundary, routes, environment }: Props) {
   const exaggeration = 2;
   const enableNoise = true;
   const noiseAmplitude = 3.6;
@@ -395,20 +398,27 @@ export default function CinematicMap({ tiles, parkBoundary, routes }: Props) {
 
         <React.Suspense fallback={null}>
           {data && (
-            <group rotation={[Math.PI / 2, 0, 0]}>
-              <ContourSegments segments={data.contourSegments} />
-              
-              {data.projectedBoundary.length > 0 && (
-                <SimpleBoundaryLine points={data.projectedBoundary} color="#ffffff" opacity={0.6} />
-              )}
+            <>
+              <group rotation={[Math.PI / 2, 0, 0]}>
+                <ContourSegments segments={data.contourSegments} />
+                
+                {data.projectedBoundary.length > 0 && (
+                  <SimpleBoundaryLine points={data.projectedBoundary} color="#ffffff" opacity={0.6} />
+                )}
 
-              {data.roadPaths.map((path, i) => (
-                <group key={i}>
-                  <RoadRibbon path={path} width={5.0} color={roadColor} yOffset={2.0} />
-                  <RoadJoints path={path} radius={2.5} color={roadColor} yOffset={2.04} />
-                </group>
-              ))}
-            </group>
+                {data.roadPaths.map((path, i) => (
+                  <group key={i}>
+                    <RoadRibbon path={path} width={5.0} color={roadColor} yOffset={2.0} />
+                    <RoadJoints path={path} radius={2.5} color={roadColor} yOffset={2.04} />
+                  </group>
+                ))}
+              </group>
+
+              {/* Render studio tools over the map */}
+              <group position={[0, 0, 5]}>
+                <SceneEditor environment={environment} />
+              </group>
+            </>
           )}
         </React.Suspense>
       </Canvas>
