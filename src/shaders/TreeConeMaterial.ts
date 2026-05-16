@@ -10,6 +10,7 @@ export const TreeConeMaterial = shaderMaterial(
     uHeightScale: 0.5,
     uAmplitude: 1.0,
     uTexture: new THREE.Texture(),
+    uRevealOpacity: 1.0,
   },
   `
     varying vec2 vUv;
@@ -85,6 +86,7 @@ export const TreeConeMaterial = shaderMaterial(
     uniform sampler2D uTexture;
     uniform float uAmplitude;
     uniform float uHeightScale;
+    uniform float uRevealOpacity;
 
     void main() {
       vec4 texColor = texture2D(uTexture, vUv);
@@ -115,7 +117,7 @@ export const TreeConeMaterial = shaderMaterial(
 
       vec3 finalColor = texColor.rgb * calculatedLight;
 
-      gl_FragColor = vec4(finalColor, texColor.a);
+      gl_FragColor = vec4(finalColor, texColor.a * uRevealOpacity);
 
       #include <tonemapping_fragment>
       #include <colorspace_fragment>

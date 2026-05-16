@@ -4,6 +4,7 @@ import { MapControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { SceneEditor } from './SceneEditor';
 import type { ShaderEnvironment } from '../lib/sceneEnvironment';
+import { useEditorStore } from '../store/editorStore';
 
 const WORLD_SCALE = 1.0;
 const DENSE_RES = 160;
@@ -230,6 +231,7 @@ interface Props {
 }
 
 export default function CinematicMap({ tiles, parkBoundary, routes, environment }: Props) {
+  const setBlueprintMapData = useEditorStore((s) => s.setBlueprintMapData)
   const exaggeration = 2;
   const enableNoise = true;
   const noiseAmplitude = 3.6;
@@ -383,6 +385,13 @@ export default function CinematicMap({ tiles, parkBoundary, routes, environment 
     });
     return result;
   }, [tiles, parkBoundary, routes]);
+
+  useEffect(() => {
+    if (!data) return
+    const boundary = data.projectedBoundary.map((v) => [v.x, v.z] as [number, number])
+    const roadPaths = data.roadPaths.map((path) => path.map((v) => [v.x, v.z] as [number, number]))
+    setBlueprintMapData(boundary, roadPaths)
+  }, [data, setBlueprintMapData]);
 
   return (
     <div className="h-full w-full" style={{ background: '#000000' }}>

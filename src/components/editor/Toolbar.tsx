@@ -1,7 +1,8 @@
 import React from 'react'
-import { Layers, Eye, EyeOff } from 'lucide-react'
+import { Layers, Eye, EyeOff, Trees, Scan } from 'lucide-react'
 import { useEditorStore } from '../../store/editorStore'
 import { SCENE_ENVIRONMENT_CONTROLS, type EnvironmentControl } from '../../lib/sceneEnvironment'
+import { generateBlueprintTrees } from '../../lib/blueprintPopulate'
 
 function Slider({
   control, value, onChange,
@@ -33,6 +34,9 @@ export function Toolbar() {
     depthFactor, setDepthFactor,
     forestDensity, setForestDensity,
     placedAssets, parkPlacedAssets, pendingAsset,
+    blueprintBoundary, blueprintRoadPaths,
+    populateBlueprintWithTrees,
+    revealMode, setRevealMode,
   } = useEditorStore()
   const environment = { windIntensity, windRandomness, depthFactor, forestDensity }
   const setEnvironmentValue = {
@@ -98,6 +102,35 @@ export function Toolbar() {
         >
           {showBackgroundForest ? <Eye size={11} /> : <EyeOff size={11} />}
           BG Forest
+        </button>
+      )}
+
+      {/* Blueprint: reveal mode toggle */}
+      {mode === 'blueprint' && (
+        <button
+          onClick={() => setRevealMode(!revealMode)}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold rounded-lg border transition-colors shrink-0 ${
+            revealMode
+              ? 'border-emerald-700 bg-emerald-950/40 text-emerald-400'
+              : 'border-neutral-700 bg-neutral-900/60 text-neutral-500 hover:text-neutral-300'
+          }`}
+        >
+          <Scan size={11} />
+          Reveal
+        </button>
+      )}
+
+      {/* Blueprint: populate trees button */}
+      {mode === 'blueprint' && blueprintBoundary && (
+        <button
+          onClick={() => {
+            const trees = generateBlueprintTrees(blueprintBoundary, blueprintRoadPaths ?? [])
+            populateBlueprintWithTrees(trees)
+          }}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold rounded-lg border border-neutral-700 bg-neutral-900/60 text-neutral-300 hover:text-white hover:border-emerald-700 hover:bg-emerald-950/30 transition-colors shrink-0"
+        >
+          <Trees size={11} />
+          Populate Trees
         </button>
       )}
 

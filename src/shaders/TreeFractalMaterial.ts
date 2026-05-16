@@ -11,6 +11,7 @@ export const TreeFractalMaterial = shaderMaterial(
     uFrequency: 1.0,
     uHeightScale: 0.5,
     uTexture: new THREE.Texture(),
+    uRevealOpacity: 1.0,
   },
   `
     varying vec2 vUv;
@@ -97,6 +98,7 @@ export const TreeFractalMaterial = shaderMaterial(
     uniform sampler2D uTexture;
     uniform float uAmplitude;
     uniform float uHeightScale;
+    uniform float uRevealOpacity;
 
     void main() {
       vec4 texColor = texture2D(uTexture, vUv);
@@ -133,7 +135,7 @@ export const TreeFractalMaterial = shaderMaterial(
 
       vec3 finalColor = texColor.rgb * calculatedLight;
 
-      gl_FragColor = vec4(finalColor, texColor.a);
+      gl_FragColor = vec4(finalColor, texColor.a * uRevealOpacity);
 
       #include <tonemapping_fragment>
       #include <colorspace_fragment>

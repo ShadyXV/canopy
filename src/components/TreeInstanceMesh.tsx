@@ -9,6 +9,7 @@ import { TreeDenseMaterial } from '../shaders/TreeDenseMaterial'
 import { useTreeTexture } from '../lib/textureCache'
 import type { ShaderTweaks } from '../store/editorStore'
 import { DEFAULT_SHADER_TWEAKS, renderTreeShaderMaterial, type ShaderType } from '../lib/shaderVariants'
+import { revealCursor, REVEAL_RADIUS, REVEAL_FEATHER } from '../lib/revealCursor'
 
 extend({ TreeConeMaterial, TreeRidgeMaterial, TreeFractalMaterial, TreeWavesMaterial, TreeDenseMaterial })
 
@@ -27,6 +28,7 @@ interface Props {
   depthFactor: number
   shaderTweaks?: ShaderTweaks
   selectedInstance?: TreeInstance | null
+  revealMode?: boolean
   onClick?: () => void
   onPointerDown?: (e: any) => void
   onPointerMove?: (e: any) => void
@@ -66,6 +68,9 @@ export function createSeededTreeInstances({
   })
 }
 
+const REVEAL_OUTER = REVEAL_RADIUS + REVEAL_FEATHER
+const REVEAL_OUTER_SQ = REVEAL_OUTER * REVEAL_OUTER
+
 export function TreeInstanceMesh({
   textureIndex,
   shader,
@@ -75,6 +80,7 @@ export function TreeInstanceMesh({
   depthFactor,
   shaderTweaks = DEFAULT_SHADER_TWEAKS,
   selectedInstance = null,
+  revealMode = false,
   onClick,
   onPointerDown,
   onPointerMove,
@@ -107,6 +113,9 @@ export function TreeInstanceMesh({
     meshRef.current.instanceMatrix.needsUpdate = true
   }, [instances, shader])
 
+  const revealModeRef = useRef(revealMode)
+  revealModeRef.current = revealMode
+
   useFrame((state) => {
     const mat = matRef.current
     if (!mat) return
@@ -118,6 +127,28 @@ export function TreeInstanceMesh({
     mat.uHeightScale = tweaksRef.current.heightScale
     mat.uAmplitude = tweaksRef.current.amplitude
     mat.uFrequency = tweaksRef.current.frequency
+
+    if (meshRef.current) {
+      if (revealModeRef.current && instances.length > 0) {
+        const [px, py] = instances[0].position
+        const dx = revealCursor.x - px
+        const dy = revealCursor.y - py
+        const distSq = dx * dx + dy * dy
+
+        if (distSq > REVEAL_OUTER_SQ) {
+          meshRef.current.visible = false
+        } else {
+          meshRef.current.visible = true
+          const dist = Math.sqrt(distSq)
+          const t = Math.max(0, (dist - REVEAL_RADIUS) / REVEAL_FEATHER)
+          // smoothstep fade: 1 inside radius, 0 at outer edge
+          mat.uRevealOpacity = 1 - t * t * (3 - 2 * t)
+        }
+      } else {
+        meshRef.current.visible = true
+        mat.uRevealOpacity = 1.0
+      }
+    }
   })
 
   const matProps = useMemo(() => ({ ref: matRef, uTexture: texture, transparent: true, depthWrite: true }), [texture])

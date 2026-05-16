@@ -11,6 +11,7 @@ export const TreeDenseMaterial = shaderMaterial(
     uFrequency: 1.0,
     uHeightScale: 0.5,
     uTexture: new THREE.Texture(),
+    uRevealOpacity: 1.0,
   },
   `
     varying vec2 vUv;
@@ -91,6 +92,7 @@ export const TreeDenseMaterial = shaderMaterial(
     uniform sampler2D uTexture;
     uniform float uAmplitude;
     uniform float uHeightScale;
+    uniform float uRevealOpacity;
 
     void main() {
       vec4 texColor = texture2D(uTexture, vUv);
@@ -121,7 +123,7 @@ export const TreeDenseMaterial = shaderMaterial(
         + vec3(0.3, 0.4, 0.5) * fillDiff * 0.7;
 
       vec3 finalColor = texColor.rgb * calculatedLight;
-      gl_FragColor = vec4(finalColor, texColor.a);
+      gl_FragColor = vec4(finalColor, texColor.a * uRevealOpacity);
 
       #include <tonemapping_fragment>
       #include <colorspace_fragment>

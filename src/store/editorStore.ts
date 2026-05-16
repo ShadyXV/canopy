@@ -44,6 +44,9 @@ interface EditorState extends SceneEnvironment {
   selectedId: string | null
   pendingAsset: PendingAsset | null
   parkPlacedAssets: ParkPlacedAsset[]
+  blueprintBoundary: [number, number][] | null
+  blueprintRoadPaths: [number, number][][] | null
+  revealMode: boolean
 
   // Actions
   setMode: (mode: 'forest' | 'studio' | 'park' | 'blueprint') => void
@@ -68,6 +71,9 @@ interface EditorState extends SceneEnvironment {
   setForestDensity: (v: number) => void
   placeParkAsset: (pos: { worldX: number; worldY: number; worldZ: number }) => void
   removeParkAsset: (id: string) => void
+  setBlueprintMapData: (boundary: [number, number][], roadPaths: [number, number][][]) => void
+  populateBlueprintWithTrees: (assets: PlacedAsset[]) => void
+  setRevealMode: (v: boolean) => void
 }
 
 let _nextId = 1
@@ -82,6 +88,9 @@ export const useEditorStore = create<EditorState>((set) => ({
   selectedId: null,
   pendingAsset: null,
   parkPlacedAssets: [],
+  blueprintBoundary: null,
+  blueprintRoadPaths: null,
+  revealMode: false,
   ...DEFAULT_SCENE_ENVIRONMENT,
 
   setMode: (mode) => set({ mode }),
@@ -194,4 +203,12 @@ export const useEditorStore = create<EditorState>((set) => ({
     set((state) => ({
       parkPlacedAssets: state.parkPlacedAssets.filter((a) => a.id !== id),
     })),
+
+  setBlueprintMapData: (boundary, roadPaths) =>
+    set({ blueprintBoundary: boundary, blueprintRoadPaths: roadPaths }),
+
+  populateBlueprintWithTrees: (assets) =>
+    set({ placedAssets: assets, selectedId: null }),
+
+  setRevealMode: (v) => set({ revealMode: v }),
 }))

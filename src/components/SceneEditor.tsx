@@ -3,6 +3,7 @@ import { Plane, Vector3 } from 'three'
 import { SingleTreeMesh } from './SingleTreeMesh'
 import { useEditorStore } from '../store/editorStore'
 import type { ShaderEnvironment } from '../lib/sceneEnvironment'
+import { revealCursor } from '../lib/revealCursor'
 
 interface Props {
   environment: ShaderEnvironment
@@ -17,6 +18,7 @@ export function SceneEditor({ environment }: Props) {
     pendingAsset,
     selectedId,
     studioTool,
+    revealMode,
     placePendingAsset,
     deselectAsset,
     selectAsset,
@@ -53,6 +55,9 @@ export function SceneEditor({ environment }: Props) {
   }
 
   const handlePlanePointerMove = (e: any) => {
+    revealCursor.x = e.point.x
+    revealCursor.y = e.point.y
+
     const drag = dragRef.current
     if (!drag) return
     if (drag.id !== selectedIdRef.current || e.pointerId !== drag.pointerId) return
@@ -121,6 +126,7 @@ export function SceneEditor({ environment }: Props) {
           windIntensity={environment.windIntensity}
           windRandomness={environment.windRandomness}
           depthFactor={environment.depthFactor}
+          revealMode={revealMode}
           onClick={selectAsset}
           onPointerDown={(e) => handleAssetPointerDown(asset.id, asset.position, e)}
           onPointerMove={handlePlanePointerMove}
