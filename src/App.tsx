@@ -9,7 +9,6 @@ import { useEditorStore } from './store/editorStore'
 import { preloadAllTextures } from './lib/textureCache'
 import { Forest } from './components/Forest'
 import { SceneEditor } from './components/SceneEditor'
-import { ParkScene } from './components/ParkScene'
 import { BlueprintScene } from './components/BlueprintScene'
 import { Toolbar } from './components/editor/Toolbar'
 import { AssetBrowser } from './components/editor/AssetBrowser'
@@ -295,14 +294,12 @@ export default function App() {
       </AnimatePresence>
 
       {/* ── HUD — bottom left ── */}
-      <div className="absolute bottom-4 pointer-events-none" style={{ left: (isStudio || isPark || isBlueprint) ? 280 : 16 }}>
+      <div className="absolute bottom-4 pointer-events-none" style={{ left: (isStudio || isBlueprint) ? 280 : 16 }}>
         <h1 className="text-2xl font-bold tracking-tighter text-white drop-shadow-md">
-          CANOPY // <span className="text-emerald-500">{isPark ? 'PARK' : isBlueprint ? 'BLUEPRINT' : isStudio ? 'STUDIO' : 'FOREST'}</span>
+          CANOPY // <span className="text-emerald-500">{isBlueprint ? 'BLUEPRINT' : isStudio ? 'STUDIO' : 'FOREST'}</span>
         </h1>
         <p className="text-xs font-mono text-neutral-500 mt-0.5">
-          {isPark
-            ? `${parkPlacedAssets.length} instances · 3D Terrain`
-            : isBlueprint
+          {isBlueprint
             ? `${useEditorStore.getState().placedAssets.length} instances · 2D Cinematic Map`
             : isStudio
             ? `${useEditorStore.getState().placedAssets.length} instances · 2.5D GLSL`

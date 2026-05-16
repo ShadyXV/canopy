@@ -56,7 +56,7 @@ export function Toolbar() {
 
       {/* Mode tabs */}
       <div className="flex bg-neutral-900 border border-neutral-800 rounded-lg p-0.5 shrink-0">
-        {(['forest', 'studio', 'park', 'blueprint'] as const).map((m) => (
+        {(['forest', 'studio', 'blueprint'] as const).map((m) => (
           <button
             key={m}
             onClick={() => setMode(m)}
@@ -70,25 +70,6 @@ export function Toolbar() {
           </button>
         ))}
       </div>
-
-      {/* Terrain render toggle (park mode) */}
-      {mode === 'park' && (
-        <div className="flex bg-neutral-900 border border-neutral-800 rounded-lg p-0.5 shrink-0">
-          {(['contours', 'grid'] as const).map((r) => (
-            <button
-              key={r}
-              onClick={() => setTerrainRender(r)}
-              className={`px-3 py-1 text-[11px] font-semibold rounded-md capitalize transition-colors ${
-                terrainRender === r
-                  ? 'bg-neutral-700 text-white'
-                  : 'text-neutral-500 hover:text-neutral-300'
-              }`}
-            >
-              {r}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Background forest toggle (studio mode) */}
       {mode === 'studio' && (
@@ -155,10 +136,6 @@ export function Toolbar() {
           pendingAsset
             ? <span className="text-emerald-400 animate-pulse">● Click to place</span>
             : <span>{placedAssets.length} placed</span>
-        ) : mode === 'park' ? (
-          pendingAsset
-            ? <span className="text-emerald-400 animate-pulse">● Click terrain to place</span>
-            : <span>{parkPlacedAssets.length} placed</span>
         ) : mode === 'blueprint' ? (
           <span>2D Map Data</span>
         ) : null}

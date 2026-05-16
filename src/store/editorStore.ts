@@ -43,14 +43,12 @@ interface EditorState extends SceneEnvironment {
   placedAssets: PlacedAsset[]
   selectedId: string | null
   pendingAsset: PendingAsset | null
-  parkPlacedAssets: ParkPlacedAsset[]
   blueprintBoundary: [number, number][] | null
   blueprintRoadPaths: [number, number][][] | null
   revealMode: boolean
 
   // Actions
-  setMode: (mode: 'forest' | 'studio' | 'park' | 'blueprint') => void
-  setTerrainRender: (v: 'contours' | 'grid') => void
+  setMode: (mode: 'forest' | 'studio' | 'blueprint') => void
   setStudioTool: (tool: StudioTool) => void
   setShowBackgroundForest: (v: boolean) => void
   startPlacement: (asset: PendingAsset) => void
@@ -69,8 +67,6 @@ interface EditorState extends SceneEnvironment {
   setWindRandomness: (v: number) => void
   setDepthFactor: (v: number) => void
   setForestDensity: (v: number) => void
-  placeParkAsset: (pos: { worldX: number; worldY: number; worldZ: number }) => void
-  removeParkAsset: (id: string) => void
   setBlueprintMapData: (boundary: [number, number][], roadPaths: [number, number][][]) => void
   populateBlueprintWithTrees: (assets: PlacedAsset[]) => void
   setRevealMode: (v: boolean) => void
@@ -175,34 +171,6 @@ export const useEditorStore = create<EditorState>((set) => ({
   setWindRandomness: (v) => set({ windRandomness: v }),
   setDepthFactor: (v) => set({ depthFactor: v }),
   setForestDensity: (v) => set({ forestDensity: v }),
-
-  placeParkAsset: (pos) =>
-    set((state) => {
-      if (!state.pendingAsset) return state
-      const id = genId()
-      return {
-        parkPlacedAssets: [
-          ...state.parkPlacedAssets,
-          {
-            id,
-            textureIndex: state.pendingAsset.textureIndex,
-            shader: state.pendingAsset.shader,
-            worldX: pos.worldX,
-            worldY: pos.worldY,
-            worldZ: pos.worldZ,
-            rotation: 0,
-            scale: 20,
-            shaderTweaks: { ...DEFAULT_SHADER_TWEAKS },
-          },
-        ],
-        pendingAsset: null,
-      }
-    }),
-
-  removeParkAsset: (id) =>
-    set((state) => ({
-      parkPlacedAssets: state.parkPlacedAssets.filter((a) => a.id !== id),
-    })),
 
   setBlueprintMapData: (boundary, roadPaths) =>
     set({ blueprintBoundary: boundary, blueprintRoadPaths: roadPaths }),
