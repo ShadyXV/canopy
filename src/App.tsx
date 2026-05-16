@@ -10,6 +10,7 @@ import { preloadAllTextures } from './lib/textureCache'
 import { Forest } from './components/Forest'
 import { SceneEditor } from './components/SceneEditor'
 import { ParkScene } from './components/ParkScene'
+import { BlueprintScene } from './components/BlueprintScene'
 import { Toolbar } from './components/editor/Toolbar'
 import { AssetBrowser } from './components/editor/AssetBrowser'
 import { SceneOutliner } from './components/editor/SceneOutliner'
@@ -152,8 +153,11 @@ export default function App() {
       {/* ── Park mode: full 3D terrain canvas ── */}
       {isPark && <ParkScene />}
 
+      {/* ── Blueprint mode: 2D Cinematic Top-Down ── */}
+      {mode === 'blueprint' && <BlueprintScene />}
+
       {/* ── Forest / Studio canvas (inset below toolbar) ── */}
-      {!isPark && (
+      {(!isPark && mode !== 'blueprint') && (
         <div className="absolute inset-0" style={{ top: TOOLBAR_H }}>
           <Canvas
             orthographic

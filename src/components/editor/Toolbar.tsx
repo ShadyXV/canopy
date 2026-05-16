@@ -52,7 +52,7 @@ export function Toolbar() {
 
       {/* Mode tabs */}
       <div className="flex bg-neutral-900 border border-neutral-800 rounded-lg p-0.5 shrink-0">
-        {(['forest', 'studio', 'park'] as const).map((m) => (
+        {(['forest', 'studio', 'park', 'blueprint'] as const).map((m) => (
           <button
             key={m}
             onClick={() => setMode(m)}
@@ -126,6 +126,8 @@ export function Toolbar() {
           pendingAsset
             ? <span className="text-emerald-400 animate-pulse">● Click terrain to place</span>
             : <span>{parkPlacedAssets.length} placed</span>
+        ) : mode === 'blueprint' ? (
+          <span>2D Map Data</span>
         ) : null}
       </div>
     </div>

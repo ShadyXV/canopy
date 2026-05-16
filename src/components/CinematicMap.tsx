@@ -1,38 +1,39 @@
 import React, { useMemo, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { MapControls, Line } from '@react-three/drei';
+import { MapControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { TreeInstanceMesh } from './TreeInstanceMesh';
-import { DEFAULT_SHADER_TWEAKS } from '../lib/shaderVariants';
 
 const WORLD_SCALE = 1.0;
 const DENSE_RES = 160;
 const CONTOUR_LEVEL_COUNT = 18;
 const CONTOUR_SAMPLE_STEP = 2;
 
-function hash2d(x, y) {
+// --- Value noise / FBM for vertex displacement ---
+function hash2d(x: number, y: number) {
   const h = (Math.sin(x * 127.1 + y * 311.7) * 43758.5453) % 1;
   return h < 0 ? h + 1 : h;
 }
-function valueNoise(x, y) {
+
+function valueNoise(x: number, y: number) {
   const xi = Math.floor(x), yi = Math.floor(y);
   const xf = x - xi, yf = y - yi;
   const xt = xf * xf * (3 - 2 * xf);
   const yt = yf * yf * (3 - 2 * yf);
-  return hash2d(xi, yi) * (1-xt)*(1-yt) + hash2d(xi+1, yi) * xt*(1-yt)
-       + hash2d(xi, yi+1) * (1-xt)*yt   + hash2d(xi+1, yi+1) * xt*yt;
+  return hash2d(xi, yi) * (1 - xt) * (1 - yt) + hash2d(xi + 1, yi) * xt * (1 - yt)
+    + hash2d(xi, yi + 1) * (1 - xt) * yt + hash2d(xi + 1, yi + 1) * xt * yt;
 }
-function fbm(x, y, octaves = 5) {
+
+function fbm(x: number, y: number, octaves = 5) {
   let v = 0, a = 1, total = 0;
   for (let i = 0; i < octaves; i++) {
     v += valueNoise(x, y) * a;
     total += a;
     a *= 0.5; x *= 2; y *= 2;
   }
-  return v / total;
+  return v / total; // 0..1
 }
 
-function sampleElevation(matrix, x, y) {
+function sampleElevation(matrix: Float32Array[], x: number, y: number) {
   if (!matrix || matrix.length === 0) return 0;
   const h = matrix.length;
   const w = matrix[0].length;
@@ -40,60 +41,42 @@ function sampleElevation(matrix, x, y) {
   const x1 = x0 + 1;
   const y0 = Math.max(0, Math.min(h - 2, Math.floor(y)));
   const y1 = y0 + 1;
-  const dx = x - x0, dy = y - y0;
-  const v00 = matrix[y0][x0] || 0, v10 = matrix[y0][x1] || 0;
-  const v01 = matrix[y1][x0] || 0, v11 = matrix[y1][x1] || 0;
-  return v00*(1-dx)*(1-dy) + v10*dx*(1-dy) + v01*(1-dx)*dy + v11*dx*dy;
+  const dx = x - x0;
+  const dy = y - y0;
+  const v00 = matrix[y0][x0] || 0;
+  const v10 = matrix[y0][x1] || 0;
+  const v01 = matrix[y1][x0] || 0;
+  const v11 = matrix[y1][x1] || 0;
+  return v00 * (1 - dx) * (1 - dy) + v10 * dx * (1 - dy) + v01 * (1 - dx) * dy + v11 * dx * dy;
 }
 
-function distToSegSq(px, pz, ax, az, bx, bz) {
-  const dx = bx - ax, dz = bz - az;
-  const lenSq = dx*dx + dz*dz;
-  const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, ((px-ax)*dx + (pz-az)*dz) / lenSq));
-  const ex = px - ax - t*dx, ez = pz - az - t*dz;
-  return ex*ex + ez*ez;
-}
-
-function blurMatrix(matrix, radius = 1) {
-  const h = matrix.length, w = matrix[0].length;
-  const result = Array(h).fill(0).map(() => new Float32Array(w));
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let sum = 0, count = 0;
-      for (let dy = -radius; dy <= radius; dy++) {
-        for (let dx = -radius; dx <= radius; dx++) {
-          const nx = x+dx, ny = y+dy;
-          if (nx >= 0 && nx < w && ny >= 0 && ny < h) { sum += matrix[ny][nx]; count++; }
-        }
-      }
-      result[y][x] = sum / count;
-    }
-  }
-  return result;
-}
-
-function gridToWorld(col, row, segmentsX, segmentsY, worldW, worldH) {
+function gridToWorld(col: number, row: number, segmentsX: number, segmentsY: number, worldW: number, worldH: number) {
   return {
     x: (col / segmentsX) * worldW - worldW / 2,
     z: (row / segmentsY) * worldH - worldH / 2,
   };
 }
 
-function interpolateContourPoint(level, a, b) {
+function interpolateContourPoint(level: number, a: { x: number, z: number, h: number }, b: { x: number, z: number, h: number }) {
   const denom = b.h - a.h;
   const t = Math.abs(denom) < 0.00001 ? 0.5 : (level - a.h) / denom;
-  return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t };
+  return {
+    x: a.x + (b.x - a.x) * t,
+    z: a.z + (b.z - a.z) * t,
+  };
 }
 
-// Contour shapes come from real elevation data but rendered flat at y=0.5
-function buildContourSegments(displacedH, segmentsX, segmentsY, worldW, worldH, minDisp, maxDisp) {
+function buildContourSegments(displacedH: Float32Array, segmentsX: number, segmentsY: number, worldW: number, worldH: number, minDisp: number, maxDisp: number) {
   const range = maxDisp - minDisp;
   if (!displacedH || range <= 0) return [];
-  const segments = [];
+
+  const segments: number[][] = [];
   const firstLevel = minDisp + range * 0.08;
   const levelStep = (range * 0.84) / CONTOUR_LEVEL_COUNT;
+
   for (let levelIndex = 1; levelIndex <= CONTOUR_LEVEL_COUNT; levelIndex++) {
     const level = firstLevel + levelStep * levelIndex;
+
     for (let row = 0; row < segmentsY; row += CONTOUR_SAMPLE_STEP) {
       const nextRow = Math.min(row + CONTOUR_SAMPLE_STEP, segmentsY);
       for (let col = 0; col < segmentsX; col += CONTOUR_SAMPLE_STEP) {
@@ -102,15 +85,19 @@ function buildContourSegments(displacedH, segmentsX, segmentsY, worldW, worldH, 
         const p10w = gridToWorld(nextCol, row, segmentsX, segmentsY, worldW, worldH);
         const p11w = gridToWorld(nextCol, nextRow, segmentsX, segmentsY, worldW, worldH);
         const p01w = gridToWorld(col, nextRow, segmentsX, segmentsY, worldW, worldH);
+        
         const p00 = { ...p00w, h: displacedH[row * (segmentsX + 1) + col] };
         const p10 = { ...p10w, h: displacedH[row * (segmentsX + 1) + nextCol] };
         const p11 = { ...p11w, h: displacedH[nextRow * (segmentsX + 1) + nextCol] };
         const p01 = { ...p01w, h: displacedH[nextRow * (segmentsX + 1) + col] };
-        const intersections = [];
+        
+        const intersections: { x: number, z: number }[] = [];
+
         if ((p00.h < level && p10.h >= level) || (p10.h < level && p00.h >= level)) intersections.push(interpolateContourPoint(level, p00, p10));
         if ((p10.h < level && p11.h >= level) || (p11.h < level && p10.h >= level)) intersections.push(interpolateContourPoint(level, p10, p11));
         if ((p11.h < level && p01.h >= level) || (p01.h < level && p11.h >= level)) intersections.push(interpolateContourPoint(level, p11, p01));
         if ((p01.h < level && p00.h >= level) || (p00.h < level && p01.h >= level)) intersections.push(interpolateContourPoint(level, p01, p00));
+
         if (intersections.length === 2) {
           segments.push([intersections[0].x, 0.5, intersections[0].z, intersections[1].x, 0.5, intersections[1].z]);
         } else if (intersections.length === 4) {
@@ -120,129 +107,138 @@ function buildContourSegments(displacedH, segmentsX, segmentsY, worldW, worldH, 
       }
     }
   }
+
   return segments;
 }
 
-// Build lineSegments-compatible flat array from a continuous polyline (A,B,B,C,C,D...)
-function polylineToSegmentArray(points, y) {
-  if (!points || points.length < 2) return new Float32Array(0);
-  const out = [];
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i], b = points[i + 1];
-    out.push(a.x, y, a.z, b.x, y, b.z);
-  }
-  return new Float32Array(out);
-}
-
-function FlatTerrain({ geometry, onTerrainClick }) {
-  if (!geometry) return null;
-  const handleClick = (e) => {
-    if (!onTerrainClick) return;
-    e.stopPropagation();
-    onTerrainClick(e.point.x, e.point.z, -e.point.y);
-  };
-  return (
-    <mesh geometry={geometry} onClick={handleClick} visible={false}>
-      <meshBasicMaterial color="#000000" side={THREE.DoubleSide} />
-    </mesh>
-  );
-}
-
-function ContourLines({ segments }) {
+function ContourSegments({ segments }: { segments: number[][] }) {
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();
     const positions = new Float32Array((segments || []).flat());
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.computeBoundingSphere();
+    geo.computeBoundingBox();
     return geo;
   }, [segments]);
+
   useEffect(() => () => geometry.dispose(), [geometry]);
+
   if (!segments?.length) return null;
+
   return (
-    <lineSegments geometry={geometry} renderOrder={1}>
-      <lineBasicMaterial color="#1a1a1a" transparent opacity={0.3} depthWrite={false} />
+    <lineSegments geometry={geometry} renderOrder={1} frustumCulled={false}>
+      <lineBasicMaterial color="#6ee7df" transparent opacity={0.18} depthWrite={false} />
     </lineSegments>
   );
 }
 
-function RouteLines({ paths }) {
-  if (!paths?.length) return null;
+function SimpleBoundaryLine({ points, color, opacity }: { points: THREE.Vector3[], color: string, opacity: number }) {
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const positions = new Float32Array(points.flatMap((point) => [point.x, 1.1, point.z]));
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.computeBoundingSphere();
+    geo.computeBoundingBox();
+    return geo;
+  }, [points]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
   return (
-    <group>
-      {paths.map((path, i) => (
-        <Line 
-          key={i} 
-          points={path.map(p => [p.x, 1.0, p.z])} 
-          color="#ffffff" 
-          lineWidth={2.5} 
-          transparent 
-          opacity={0.9} 
-          depthWrite={false} 
-          renderOrder={3} 
-        />
+    <line geometry={geometry} renderOrder={2} frustumCulled={false}>
+      <lineBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
+    </line>
+  );
+}
+
+function RoadRibbon({ path, width, color, yOffset = 0 }: { path: THREE.Vector3[], width: number, color: string, yOffset?: number }) {
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    if (!path || path.length < 2) return geo;
+
+    const halfWidth = width / 2;
+    const positions = [];
+    const indices = [];
+
+    for (let index = 0; index < path.length - 1; index++) {
+      const start = path[index];
+      const end = path[index + 1];
+      const tangent = new THREE.Vector3(end.x - start.x, 0, end.z - start.z);
+      if (tangent.lengthSq() < 0.00001) tangent.set(1, 0, 0);
+      tangent.normalize();
+
+      const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).multiplyScalar(halfWidth);
+      const base = positions.length / 3;
+      positions.push(
+        start.x + normal.x, yOffset, start.z + normal.z,
+        start.x - normal.x, yOffset, start.z - normal.z,
+        end.x + normal.x, yOffset, end.z + normal.z,
+        end.x - normal.x, yOffset, end.z - normal.z,
+      );
+      indices.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
+    }
+
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    geo.computeBoundingSphere();
+    geo.computeBoundingBox();
+    return geo;
+  }, [path, width, yOffset]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+
+  if (!path || path.length < 2) return null;
+
+  return (
+    <mesh geometry={geometry} renderOrder={3} frustumCulled={false}>
+      <meshBasicMaterial
+        color={color}
+        side={THREE.DoubleSide}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
+
+function RoadJoints({ path, radius, color, yOffset = 0 }: { path: THREE.Vector3[], radius: number, color: string, yOffset?: number }) {
+  if (!path?.length) return null;
+
+  return (
+    <group renderOrder={4}>
+      {path.map((point, index) => (
+        <mesh key={index} position={[point.x, yOffset, point.z]} rotation-x={-Math.PI / 2} frustumCulled={false}>
+          <circleGeometry args={[radius, 24]} />
+          <meshBasicMaterial
+            color={color}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
       ))}
     </group>
   );
 }
 
-function BoundaryLine({ points }) {
-  if (!points?.length) return null;
-  return (
-    <Line 
-      points={points.map(p => [p.x, 1.5, p.z])} 
-      color="#ffffff" 
-      lineWidth={3.5} 
-      transparent 
-      opacity={0.8} 
-      depthWrite={false} 
-      renderOrder={4} 
-    />
-  );
+interface Props {
+  tiles: any[];
+  parkBoundary: [number, number][];
+  routes: { coordinates: [number, number][] }[];
 }
 
-function ParkTreeSprite({ worldX, worldY, worldZ, textureIndex, shader, scale, rotation, shaderTweaks, environment }) {
-  const instance = useMemo(() => ({
-    position: [0, 0],
-    rotation: rotation || 0,
-    scale: scale || 20,
-  }), [rotation, scale]);
-  return (
-    <group position={[worldX, -worldZ, worldY + 8]}>
-      <TreeInstanceMesh
-        textureIndex={textureIndex}
-        shader={shader}
-        instances={[instance]}
-        windIntensity={environment?.windIntensity ?? 0.5}
-        windRandomness={environment?.windRandomness ?? 0.3}
-        depthFactor={environment?.depthFactor ?? 1.0}
-        shaderTweaks={shaderTweaks || DEFAULT_SHADER_TWEAKS}
-      />
-    </group>
-  );
-}
+export default function CinematicMap({ tiles, parkBoundary, routes }: Props) {
+  const exaggeration = 2;
+  const enableNoise = true;
+  const noiseAmplitude = 3.6;
+  const noiseFrequency = 8;
+  const roadColor = '#ffffff';
 
-export default function ParkTerrainMap({
-  tiles,
-  parkBoundary,
-  routes,
-  parkPlacedAssets = [],
-  onTerrainClick,
-  showContours = true,
-  exaggeration = 2,
-  enableNoise = true,
-  noiseAmplitude = 3.6,
-  noiseFrequency = 8,
-  enableSmoothing = false,
-  blurRadius = 1,
-  enableRouteSmooth = true,
-  roadHalfWidth = 3.5,
-  environment = {},
-}) {
   const data = useMemo(() => {
     if (!tiles || tiles.length === 0 || !parkBoundary) return null;
 
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     const isOT = tiles[0].isOT;
-    let rawMatrix;
+    let rawMatrix: Float32Array[];
 
     if (isOT) {
       const meta = tiles[0].meta;
@@ -269,7 +265,8 @@ export default function ParkTerrainMap({
     });
 
     const { zoom, cellsize } = tiles[0].meta || { zoom: tiles[0].z };
-    let refLng, refLat, local_delta_lng, local_delta_lat;
+    let refLng: number, refLat: number, local_delta_lng: number, local_delta_lat: number;
+    
     if (isOT) {
       refLng = minX; refLat = minY + (rawMatrix.length * cellsize);
       local_delta_lng = cellsize; local_delta_lat = -cellsize;
@@ -284,8 +281,8 @@ export default function ParkTerrainMap({
       local_delta_lat = (nextLat - refLat) / 256;
     }
 
-    const getXIdx = (lng) => (lng - refLng) / local_delta_lng;
-    const getYIdx = (lat) => (lat - refLat) / local_delta_lat;
+    const getXIdx = (lng: number) => (lng - refLng) / local_delta_lng;
+    const getYIdx = (lat: number) => (lat - refLat) / local_delta_lat;
     const startX = Math.floor(Math.max(0, getXIdx(minLng) - (isOT ? 10 : 40)));
     const endX = Math.ceil(Math.min(rawMatrix[0].length - 1, getXIdx(maxLng) + (isOT ? 10 : 40)));
     const startY = Math.floor(Math.max(0, getYIdx(maxLat) - (isOT ? 10 : 40)));
@@ -298,6 +295,7 @@ export default function ParkTerrainMap({
 
     const segmentsX = Math.min(DENSE_RES, gridWidth * 4), segmentsY = Math.min(DENSE_RES, gridHeight * 4);
     const denseMatrix = Array(segmentsY + 1).fill(0).map(() => new Float32Array(segmentsX + 1));
+    
     for (let i = 0; i <= segmentsY; i++) {
       for (let j = 0; j <= segmentsX; j++) {
         const sx = startX + (j / segmentsX) * (gridWidth - 1);
@@ -306,58 +304,19 @@ export default function ParkTerrainMap({
       }
     }
 
-    let carvedMatrix = denseMatrix;
-    if (enableRouteSmooth && routes?.length) {
-      carvedMatrix = denseMatrix.map(row => [...row]);
-      routes.forEach(route => {
-        if (!route.coordinates) return;
-        route.coordinates.forEach(([lat1, lng1], idx) => {
-          if (idx === 0) return;
-          const [lat0, lng0] = route.coordinates[idx - 1];
-          const x0 = ((getXIdx(lng0) - startX) / (gridWidth - 1)) * segmentsX;
-          const z0 = ((getYIdx(lat0) - startY) / (gridHeight - 1)) * segmentsY;
-          const x1 = ((getXIdx(lng1) - startX) / (gridWidth - 1)) * segmentsX;
-          const z1 = ((getYIdx(lat1) - startY) / (gridHeight - 1)) * segmentsY;
-          const carveR = roadHalfWidth;
-          const carveRSq = carveR * carveR;
-          const bx = Math.max(0, Math.floor(Math.min(x0, x1) - carveR));
-          const ex = Math.min(segmentsX, Math.ceil(Math.max(x0, x1) + carveR));
-          const bz = Math.max(0, Math.floor(Math.min(z0, z1) - carveR));
-          const ez = Math.min(segmentsY, Math.ceil(Math.max(z0, z1) + carveR));
-          for (let i = bz; i <= ez; i++) {
-            for (let j = bx; j <= ex; j++) {
-              const dSq = distToSegSq(j, i, x0, z0, x1, z1);
-              if (dSq < carveRSq) {
-                const neighbors = [];
-                for (let di = -2; di <= 2; di++) for (let dj = -2; dj <= 2; dj++) {
-                  const ni = i + di, nj = j + dj;
-                  if (ni >= 0 && ni <= segmentsY && nj >= 0 && nj <= segmentsX) neighbors.push(denseMatrix[ni][nj]);
-                }
-                carvedMatrix[i][j] = neighbors.reduce((a, b) => a + b, 0) / neighbors.length;
-              }
-            }
-          }
-        });
-      });
-    }
-
-    const finalMatrix = enableSmoothing ? blurMatrix(carvedMatrix, blurRadius) : carvedMatrix;
-
-    let minHeight = Infinity, maxHeight = -Infinity;
+    let minHeight = Infinity;
     for (let i = 0; i <= segmentsY; i++) {
       for (let j = 0; j <= segmentsX; j++) {
-        const h = finalMatrix[i][j];
+        const h = denseMatrix[i][j];
         if (h < minHeight) minHeight = h;
-        if (h > maxHeight) maxHeight = h;
       }
     }
 
-    // Elevation data used only for contour shape generation — not applied to vertex positions
     const displacedH = new Float32Array((segmentsY + 1) * (segmentsX + 1));
     let minDisp = Infinity, maxDisp = -Infinity;
     for (let i = 0; i <= segmentsY; i++) {
       for (let j = 0; j <= segmentsX; j++) {
-        const base = (finalMatrix[i][j] - minHeight) * exaggeration;
+        const base = (denseMatrix[i][j] - minHeight) * exaggeration;
         let h = base;
         if (enableNoise) {
           const nv = (fbm(j * noiseFrequency / segmentsX, i * noiseFrequency / segmentsY) - 0.5) * 2;
@@ -371,14 +330,9 @@ export default function ParkTerrainMap({
 
     const contourSegments = buildContourSegments(displacedH, segmentsX, segmentsY, worldW, worldH, minDisp, maxDisp);
 
-    // Flat plane — vertices stay at y=0, no displacement
-    const geo = new THREE.PlaneGeometry(worldW, worldH, 1, 1);
-    geo.rotateX(-Math.PI / 2);
-    geo.computeVertexNormals();
-
-    const subdivideLine = (coords, maxPxDist = 0.5) => {
+    const subdivideLine = (coords: [number, number][], maxPxDist = 0.5) => {
       if (!coords || coords.length < 2) return coords;
-      const detailed = [];
+      const detailed: [number, number][] = [];
       for (let i = 0; i < coords.length - 1; i++) {
         const [lat1, lng1] = coords[i], [lat2, lng2] = coords[i + 1];
         const x1 = getXIdx(lng1), y1 = getYIdx(lat1);
@@ -417,47 +371,44 @@ export default function ParkTerrainMap({
       });
     });
 
-    return { geometry: geo, contourSegments, projectedBoundary, roadPaths };
-  }, [tiles, parkBoundary, routes, exaggeration, enableNoise, noiseAmplitude, noiseFrequency, enableSmoothing, blurRadius, enableRouteSmooth, roadHalfWidth]);
+    const result = { contourSegments, projectedBoundary, roadPaths };
+    console.log("CinematicMap Data Generated:", {
+      contours: contourSegments.length,
+      boundary: projectedBoundary.length,
+      roads: roadPaths.length,
+      worldW, worldH
+    });
+    return result;
+  }, [tiles, parkBoundary, routes]);
 
   return (
     <div className="h-full w-full" style={{ background: '#000000' }}>
       <Canvas
         orthographic
-        camera={{ position: [0, 0, 1500], zoom: 0.7, up: [0, 1, 0] }}
+        camera={{ position: [0, 0, 1500], zoom: 0.7, up: [0, 1, 0], near: -5000, far: 5000 }}
         gl={{ alpha: false }}
       >
-        {/* Explicit white scene background */}
         <color attach="background" args={['#000000']} />
-
+        
+        {/* Orthographic map controls restricting rotation (2D panning only) */}
         <MapControls makeDefault enableRotate={false} screenSpacePanning />
 
         <React.Suspense fallback={null}>
           {data && (
-            <>
-              {/* Terrain group: rotateX(PI/2) maps XZ plane to XY screen plane */}
-              <group rotation={[Math.PI / 2, 0, 0]}>
-                <FlatTerrain geometry={data.geometry} onTerrainClick={onTerrainClick} />
-                {showContours && <ContourLines segments={data.contourSegments} />}
-                <RouteLines paths={data.roadPaths} />
-                <BoundaryLine points={data.projectedBoundary} />
-              </group>
+            <group rotation={[Math.PI / 2, 0, 0]}>
+              <ContourSegments segments={data.contourSegments} />
+              
+              {data.projectedBoundary.length > 0 && (
+                <SimpleBoundaryLine points={data.projectedBoundary} color="#ffffff" opacity={0.6} />
+              )}
 
-              {parkPlacedAssets.map(asset => (
-                <ParkTreeSprite
-                  key={asset.id}
-                  worldX={asset.worldX}
-                  worldY={asset.worldY}
-                  worldZ={asset.worldZ}
-                  textureIndex={asset.textureIndex}
-                  shader={asset.shader}
-                  scale={asset.scale}
-                  rotation={asset.rotation}
-                  shaderTweaks={asset.shaderTweaks}
-                  environment={environment}
-                />
+              {data.roadPaths.map((path, i) => (
+                <group key={i}>
+                  <RoadRibbon path={path} width={5.0} color={roadColor} yOffset={2.0} />
+                  <RoadJoints path={path} radius={2.5} color={roadColor} yOffset={2.04} />
+                </group>
               ))}
-            </>
+            </group>
           )}
         </React.Suspense>
       </Canvas>

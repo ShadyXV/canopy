@@ -36,7 +36,7 @@ type AssetUpdates = Partial<Pick<PlacedAsset, 'shader' | 'rotation' | 'scale' | 
 export type StudioTool = 'select' | 'move'
 
 interface EditorState extends SceneEnvironment {
-  mode: 'forest' | 'studio' | 'park'
+  mode: 'forest' | 'studio' | 'park' | 'blueprint'
   terrainRender: 'contours' | 'grid'
   studioTool: StudioTool
   showBackgroundForest: boolean
@@ -46,7 +46,7 @@ interface EditorState extends SceneEnvironment {
   parkPlacedAssets: ParkPlacedAsset[]
 
   // Actions
-  setMode: (mode: 'forest' | 'studio' | 'park') => void
+  setMode: (mode: 'forest' | 'studio' | 'park' | 'blueprint') => void
   setTerrainRender: (v: 'contours' | 'grid') => void
   setStudioTool: (tool: StudioTool) => void
   setShowBackgroundForest: (v: boolean) => void
